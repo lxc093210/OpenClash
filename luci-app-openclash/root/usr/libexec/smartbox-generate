@@ -3,6 +3,9 @@
 set -eu
 umask 077
 mkdir -p /etc/sing-box-smart
+chmod 0700 /etc/sing-box-smart
+CANDIDATE=/etc/sing-box-smart/config.candidate.json
+trap 'rm -f "$CANDIDATE"' EXIT HUP INT TERM
 lua - <<'LUA'
 local uci = require("luci.model.uci").cursor()
 local json = require("luci.jsonc")
@@ -50,10 +53,9 @@ assert(fp:close())
 LUA
 bin="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 [ -x "$bin" ] || { echo "Smart binary unavailable: $bin" >&2; exit 1; }
-if "$bin" check -c /etc/sing-box-smart/config.candidate.json >/dev/null; then
-  mv /etc/sing-box-smart/config.candidate.json /etc/sing-box-smart/config.json
+if "$bin" check -c "$CANDIDATE" >/dev/null; then
+  mv "$CANDIDATE" /etc/sing-box-smart/config.json
   echo "Config validated"
 else
-  rm -f /etc/sing-box-smart/config.candidate.json
   exit 1
 fi
