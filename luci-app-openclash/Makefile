@@ -40,7 +40,7 @@ endef
 define Package/$(PKG_NAME)
 	CATEGORY:=LuCI
 	SUBMENU:=3. Applications
-	TITLE:=LuCI support for clash
+	TITLE:=LuCI support for clash (SmartBox development fork)
 	PKGARCH:=all
 	DEPENDS:=+dnsmasq-full +bash +curl +ca-bundle +ip-full \
 	+ruby +ruby-yaml +kmod-tun +unzip
@@ -59,6 +59,8 @@ define Build/Prepare
 	$(foreach po,$(wildcard ${CURDIR}/po/zh-cn/*.po), \
 		po2lmo $(po) $(PKG_BUILD_DIR)/$(patsubst %.po,%.lmo,$(notdir $(po)));)
 	chmod 0755 $(PKG_BUILD_DIR)/root/etc/init.d/openclash
+	chmod 0755 $(PKG_BUILD_DIR)/root/etc/init.d/smartbox
+	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-generate
 	chmod -R 0755 $(PKG_BUILD_DIR)/root/usr/share/openclash/
 	exit 0
 endef
