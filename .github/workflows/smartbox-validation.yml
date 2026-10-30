@@ -33,7 +33,7 @@ jobs:
           luac -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
       - name: JavaScript syntax of rendered LuCI page
         run: |
-          awk '/<script type="text\\/javascript">/{p=1;next} /<\\/script>/{p=0} p{print}' \
+          awk '$0 ~ /<script type=/ {p=1; next} $0 ~ /<[/]script>/ {p=0} p {print}' \
             luci-app-openclash/luasrc/view/openclash/smartbox_status.htm > /tmp/smartbox-status.js
           test -s /tmp/smartbox-status.js
           node --check /tmp/smartbox-status.js
