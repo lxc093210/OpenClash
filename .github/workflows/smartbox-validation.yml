@@ -8,6 +8,7 @@ on:
       - 'luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua'
       - 'luci-app-openclash/root/etc/init.d/smartbox'
       - 'luci-app-openclash/root/usr/libexec/smartbox-*'
+      - 'luci-app-openclash/luasrc/view/openclash/smartbox_status.htm'
       - '.github/workflows/smartbox-validation.yml'
   workflow_dispatch:
 
@@ -30,6 +31,12 @@ jobs:
           luac -p luci-app-openclash/luasrc/controller/smartbox.lua
           luac -p luci-app-openclash/luasrc/controller/smartbox_status.lua
           luac -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+      - name: JavaScript syntax of rendered LuCI page
+        run: |
+          awk '/<script type="text\\/javascript">/{p=1;next} /<\\/script>/{p=0} p{print}' \
+            luci-app-openclash/luasrc/view/openclash/smartbox_status.htm > /tmp/smartbox-status.js
+          test -s /tmp/smartbox-status.js
+          node --check /tmp/smartbox-status.js
       - name: Assert isolated default
         run: |
           grep -q "option enabled '0'" luci-app-openclash/root/etc/config/smartbox
