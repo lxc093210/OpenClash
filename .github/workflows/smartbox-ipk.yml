@@ -36,6 +36,11 @@ jobs:
           ./scripts/feeds install -a
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
           make defconfig
+      - name: Build OpenClash translation compiler
+        run: |
+          make -C /tmp/sdk/package/smartbox/tools/po2lmo
+          sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
+          command -v po2lmo
       - name: Compile package
         run: |
           cd /tmp/sdk
