@@ -35,4 +35,24 @@ end
 local interval = p:option(Value, "update_interval", translate("Refresh interval"))
 interval.default = "12h"
 interval.rmempty = false
+
+local controls = m:section(SimpleSection)
+local status = controls:option(DummyValue, "_runtime", translate("Runtime status"))
+function status.cfgvalue(self, section)
+  if os.execute("pidof sing-box-smart >/dev/null 2>&1") == 0 then
+    return translate("Running (local test)")
+  end
+  return translate("Stopped")
+end
+local start = controls:option(Button, "_start", translate("Start local test"))
+start.inputstyle = "apply"
+function start.write(self, section)
+  local rc = os.execute("/etc/init.d/smartbox start >/dev/null 2>&1")
+  self.description = rc == 0 and translate("Start requested; refresh status") or translate("Failed; check system log and configuration")
+end
+local stop = controls:option(Button, "_stop", translate("Stop local test"))
+stop.inputstyle = "reset"
+function stop.write(self, section)
+  os.execute("/etc/init.d/smartbox stop >/dev/null 2>&1")
+end
 return m
