@@ -2,6 +2,7 @@ module("luci.controller.smartbox_status", package.seeall)
 local http = require "luci.http"
 local json = require "luci.jsonc"
 local sys = require "luci.sys"
+local util = require "luci.util"
 local uci = require("luci.model.uci").cursor()
 
 function index()
@@ -25,8 +26,8 @@ function status_data()
   local secret = uci:get("smartbox","main","api_secret") or ""
   local function fetch(path)
     local cmd = "curl -fsS --max-time 3 -H " ..
-      sys.shellquote("Authorization: Bearer " .. secret) ..
-      " " .. sys.shellquote("http://127.0.0.1:" .. port .. path) ..
+      util.shellquote("Authorization: Bearer " .. secret) ..
+      " " .. util.shellquote("http://127.0.0.1:" .. port .. path) ..
       " 2>/dev/null"
     return json.parse(sys.exec(cmd))
   end
