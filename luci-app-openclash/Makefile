@@ -64,6 +64,7 @@ define Build/Prepare
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-core-install
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-core-rollback
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-status
+	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-secret-init
 	chmod -R 0755 $(PKG_BUILD_DIR)/root/usr/share/openclash/
 	exit 0
 endef
