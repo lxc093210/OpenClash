@@ -25,11 +25,19 @@ curl -fLSs --retry 2 "$BASE/SHA256SUMS" -o "$TMP/SHA256SUMS"
 curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
 LINE="$(grep " $NAME.tar.gz$" "$TMP/SHA256SUMS" | head -n 1 || true)"
 [ -n "$LINE" ] || { echo "Checksum not found in upstream SHA256SUMS" >&2; exit 1; }
+case "$LINE" in
+  *"$NAME.tar.gz") ;;
+  *) echo "Unexpected checksum entry" >&2; exit 1 ;;
+esac
 EXPECTED="$(printf '%s\n' "$LINE" | awk '{print $1}')"
 ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
 [ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA256 mismatch" >&2; exit 1; }
-tar -xzf "$TMP/$NAME.tar.gz" -C "$TMP"
-EXE="$(find "$TMP" -type f -name "$NAME" | head -n 1)"
+tar -tzf "$TMP/$NAME.tar.gz" | while IFS= read -r entry; do
+ case "$entry" in /*|../*|*/../*|*/..) echo "Unsafe archive path" >&2; exit 1;; esac
+done
+mkdir -p "$TMP/extracted"
+tar -xzf "$TMP/$NAME.tar.gz" -C "$TMP/extracted"
+EXE="$(find "$TMP/extracted" -type f -name "$NAME" | head -n 1)"
 [ -n "$EXE" ] || { echo "Executable missing" >&2; exit 1; }
 chmod 700 "$EXE"
 "$EXE" version | grep -F "$VERSION" >/dev/null || { echo "Unexpected binary version" >&2; exit 1; }
