@@ -19,14 +19,16 @@ jobs:
       - name: Prepare OpenWrt SDK
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd
           wget -q https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst -O /tmp/sdk.tar.zst
+          echo '5e189d938c2320c4c86a9565133970436a7ddf684ef8d01ee1c18c561c4ed643  /tmp/sdk.tar.zst' | sha256sum -c -
           mkdir -p /tmp/sdk
           tar --zstd -xf /tmp/sdk.tar.zst -C /tmp/sdk --strip-components=1
       - name: Import package source
         run: |
           mkdir -p /tmp/sdk/package/smartbox
           cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
+          sed -i 's/PKG_VERSION:=0.48.002/PKG_VERSION:=0.48.002-smartbox1/' /tmp/sdk/package/smartbox/Makefile
       - name: Configure
         run: |
           cd /tmp/sdk
