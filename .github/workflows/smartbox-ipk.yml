@@ -5,7 +5,7 @@ on:
   push:
     branches: [feature/sing-box-smart-adapter]
     paths:
-      - 'luci-app-openclash/**'
+      - 'luci-app-openclash/Makefile'
       - '.github/workflows/smartbox-ipk.yml'
 
 permissions:
