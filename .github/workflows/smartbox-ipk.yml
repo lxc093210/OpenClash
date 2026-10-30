@@ -1,0 +1,49 @@
+name: SmartBox experimental IPK build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/sing-box-smart-adapter]
+    paths:
+      - 'luci-app-openclash/**'
+      - '.github/workflows/smartbox-ipk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare OpenWrt SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync
+          wget -q https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst -O /tmp/sdk.tar.zst
+          mkdir -p /tmp/sdk
+          tar --zstd -xf /tmp/sdk.tar.zst -C /tmp/sdk --strip-components=1
+      - name: Import package source
+        run: |
+          mkdir -p /tmp/sdk/package/smartbox
+          cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
+      - name: Configure
+        run: |
+          cd /tmp/sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
+          make defconfig
+      - name: Compile package
+        run: |
+          cd /tmp/sdk
+          make package/smartbox/compile V=s -j2
+      - name: Find IPK
+        run: |
+          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print
+          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print -quit | grep -q .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smartbox-openwrt-x86-64-ipk-experimental
+          path: /tmp/sdk/bin/packages/**/*openclash*.ipk
+          if-no-files-found: error
