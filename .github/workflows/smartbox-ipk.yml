@@ -44,7 +44,10 @@ jobs:
       - name: Compile package
         run: |
           cd /tmp/sdk
-          make package/smartbox/compile V=s -j2
+          # OpenWrt's Rust host bootstrap misidentifies third-party GitHub
+          # runners as rust-lang's own CI (openwrt/packages#26623).
+          # Do not change the globally visible GitHub Actions environment.
+          env -u GITHUB_ACTIONS -u CI make package/smartbox/compile V=s -j2
       - name: Find IPK
         run: |
           find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print
