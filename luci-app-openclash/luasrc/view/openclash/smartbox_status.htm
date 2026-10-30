@@ -5,12 +5,15 @@
 <pre id="smartbox-runtime" aria-live="polite"></pre>
 <div id="smartbox-results"></div>
 <p><button type="button" id="smartbox-refresh" class="btn cbi-button cbi-button-reload"><%:刷新排名%></button></p>
+<h3><%:近期日志%></h3>
+<pre id="smartbox-logs" aria-live="polite" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto"></pre>
 <script type="text/javascript">
 (function () {
   'use strict';
   var endpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","status_data")%>';
   var message = document.getElementById('smartbox-message');
   var runtime = document.getElementById('smartbox-runtime');
+  var logs = document.getElementById('smartbox-logs');
   var target = document.getElementById('smartbox-results');
   var button = document.getElementById('smartbox-refresh');
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
@@ -42,6 +45,8 @@
   function draw(data) {
     clear(target);
     runtime.textContent = data && data.runtime || '';
+    logs.textContent = data && Array.isArray(data.logs) && data.logs.length ?
+      data.logs.join('\n') : '<%:暂无日志%>';
     if (!data || data.error) {
       message.textContent = data && data.error || '<%:Smart 数据读取失败%>';
       return;
@@ -117,6 +122,9 @@
   }
   button.addEventListener('click', load);
   load();
+  window.setInterval(function () {
+    if (!document.hidden && !button.disabled) load();
+  }, 10000);
 })();
 </script>
 <%+footer%>

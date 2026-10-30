@@ -76,6 +76,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/conffiles
+/etc/config/openclash
 /etc/config/smartbox
 endef
 
@@ -120,8 +121,6 @@ define Package/$(PKG_NAME)/postrm
 	   DNSMASQ_CONF_DIR="/tmp/dnsmasq.d"
 	fi
 	DNSMASQ_CONF_DIR=$${DNSMASQ_CONF_DIR%*/}
-	rm -rf /etc/openclash >/dev/null 2>&1
-	rm -rf /etc/config/openclash >/dev/null 2>&1
 	rm -rf /tmp/openclash.log >/dev/null 2>&1
 	rm -rf /tmp/openclash_start.log >/dev/null 2>&1
 	rm -rf /tmp/openclash.change >/dev/null 2>&1

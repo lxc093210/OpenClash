@@ -48,6 +48,26 @@ interval.default = "12h"
 interval.rmempty = false
 
 local controls = m:section(SimpleSection)
+local core = controls:option(DummyValue, "_core", translate("Smart core"))
+function core.cfgvalue(self, section)
+  local line = require("luci.sys").exec("/usr/bin/sing-box-smart version 2>/dev/null | head -n 1") or ""
+  local version = line:gsub("%s+$", "")
+  return version ~= "" and version or translate("Not installed")
+end
+local install = controls:option(Button, "_install_core", translate("Install pinned Smart core"))
+install.inputstyle = "apply"
+function install.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-core-install >/dev/null 2>&1")
+  self.description = rc == 0 and translate("Core installed") or
+    translate("Installation failed; stop SmartBox and check system log")
+end
+local rollback = controls:option(Button, "_rollback_core", translate("Rollback Smart core"))
+rollback.inputstyle = "reset"
+function rollback.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-core-rollback >/dev/null 2>&1")
+  self.description = rc == 0 and translate("Previous core restored") or
+    translate("Rollback failed; stop SmartBox and check system log")
+end
 local status = controls:option(DummyValue, "_runtime", translate("Runtime status"))
 function status.cfgvalue(self, section)
   if os.execute("pidof sing-box-smart >/dev/null 2>&1") == 0 then
@@ -58,6 +78,10 @@ end
 local start = controls:option(Button, "_start", translate("Start local test"))
 start.inputstyle = "apply"
 function start.write(self, section)
+  if require("luci.model.uci").cursor():get("smartbox", "main", "enabled") ~= "1" then
+    self.description = translate("Enable the independent service and save first")
+    return
+  end
   local rc = os.execute("/etc/init.d/smartbox start >/dev/null 2>&1")
   self.description = rc == 0 and translate("Start requested; refresh status") or translate("Failed; check system log and configuration")
 end

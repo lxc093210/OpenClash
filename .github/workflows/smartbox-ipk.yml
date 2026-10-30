@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1
           wget -q --https-only --retry-connrefused --tries=3 "$SDK_URL" -O /tmp/sdk.tar.zst
           printf '%s  %s\n' "$SDK_SHA256" /tmp/sdk.tar.zst | sha256sum -c -
           mkdir -p /tmp/sdk
@@ -156,6 +156,17 @@ jobs:
           make -C /tmp/sdk/package/smartbox/tools/po2lmo
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
+
+      - name: Check SmartBox Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          luac5.1 -p luci-app-openclash/luasrc/controller/smartbox.lua
+          luac5.1 -p luci-app-openclash/luasrc/controller/smartbox_status.lua
+          luac5.1 -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          sed -n "/^lua - <<'LUA'$/,/^LUA$/p" \
+            luci-app-openclash/root/usr/libexec/smartbox-generate |
+            sed '1d;$d' | luac5.1 -p -
 
       - name: Compile package
         shell: bash
