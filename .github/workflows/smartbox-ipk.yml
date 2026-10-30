@@ -76,6 +76,13 @@ jobs:
           test -f "$ruby_makefile"
           sed -i 's/PKG_BUILD_DEPENDS:=ruby\/host RUBY_ENABLE_YJIT:rust\/host/PKG_BUILD_DEPENDS:=ruby\/host/' "$ruby_makefile"
           ! grep -q 'rust/host' "$ruby_makefile"
+          # feeds install normally creates a symlink, but handle SDKs that
+          # materialize the package under package/feeds as well.
+          installed_ruby_makefile=package/feeds/packages/ruby/Makefile
+          if [ -f "$installed_ruby_makefile" ]; then
+            sed -i 's/PKG_BUILD_DEPENDS:=ruby\/host RUBY_ENABLE_YJIT:rust\/host/PKG_BUILD_DEPENDS:=ruby\/host/' "$installed_ruby_makefile"
+            ! grep -q 'rust/host' "$installed_ruby_makefile"
+          fi
 
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
@@ -85,6 +92,10 @@ jobs:
           grep -q '^# CONFIG_RUBY_ENABLE_YJIT is not set$' .config
           if grep -q '^CONFIG_RUBY_ENABLE_YJIT=' .config; then
             echo 'Ruby YJIT unexpectedly enabled' >&2
+            exit 1
+          fi
+          if grep -q '^CONFIG_PACKAGE_rust=' .config; then
+            echo 'Rust target package unexpectedly selected' >&2
             exit 1
           fi
           printf '%s\n' 'Resolved feed revisions:'
@@ -104,8 +115,13 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/sdk
-          # The Rust recipe is patched above, so a host LLVM CI download is
-          # never attempted even on a third-party GitHub runner.
+          # Capture the dependency plan so a future feed update cannot
+          # silently reintroduce rust/host into this Ruby-only package.
+          make package/smartbox/compile -n V=s 2>&1 | tee /tmp/smartbox-dry-run.log
+          if grep -Eiq '(^|[^[:alnum:]_-])rust(/host|c|[-_])|download-ci-llvm' /tmp/smartbox-dry-run.log; then
+            echo 'Unexpected Rust dependency in SmartBox build plan' >&2
+            exit 1
+          fi
           make package/smartbox/compile V=s -j2
 
       - name: Find IPK
