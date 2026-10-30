@@ -164,6 +164,13 @@ jobs:
           cd /tmp/sdk
           make package/feeds/packages/ruby/host/compile V=s -j1
 
+      - name: Build Ruby target dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/sdk
+          make package/feeds/packages/ruby/compile V=s -j1
+
       - name: Compile package
         shell: bash
         run: |
