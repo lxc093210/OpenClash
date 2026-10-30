@@ -1,0 +1,24 @@
+name: SmartBox development checks
+
+on:
+  push:
+    branches:
+      - 'feature/sing-box-smart-adapter'
+  pull_request:
+    paths:
+      - 'tools/smartbox-preflight.sh'
+      - '.github/workflows/smartbox-sanity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax-check shell script
+        run: sh -n tools/smartbox-preflight.sh
+      - name: Check preflight is read-only
+        run: |
+          ! grep -E '(^|[[:space:]])(uci set|uci commit|iptables |nft add|/etc/init.d/.* (stop|start)|rm -rf)' tools/smartbox-preflight.sh
