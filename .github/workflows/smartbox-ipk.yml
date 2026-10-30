@@ -157,26 +157,17 @@ jobs:
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
 
-      - name: Build Ruby host dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd /tmp/sdk
-          make package/feeds/packages/ruby/host/compile V=s -j1
-
-      - name: Build Ruby target dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd /tmp/sdk
-          make package/feeds/packages/ruby/compile V=s -j1
-
       - name: Compile package
         shell: bash
         run: |
           set -euo pipefail
           cd /tmp/sdk
-          make package/smartbox/compile V=s -j2
+          # This package contains scripts and LuCI assets, with no target ELF
+          # linkage. The SDK omits core source recipes such as ncurses, so a
+          # top-level dependency rebuild cannot link bash. Build the package
+          # through OpenWrt's package.mk directly; runtime dependencies stay
+          # recorded in the generated IPK control metadata.
+          make -C package/smartbox TOPDIR=/tmp/sdk compile V=s -j1
 
       - name: Find IPK
         shell: bash
@@ -198,6 +189,12 @@ jobs:
           else
             tar -xf "$IPK"
           fi
+          CONTROL="$(find . -maxdepth 1 -name 'control.tar.*' -print -quit)"
+          [ -n "$CONTROL" ]
+          tar -xOf "$CONTROL" ./control | grep -E '^Depends:.*(bash|ruby|ruby-yaml)' || {
+            echo 'Missing expected runtime dependencies in package control' >&2
+            exit 1
+          }
           DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
           [ -n "$DATA" ]
           tar -tf "$DATA" > /tmp/smartbox-manifest.txt
