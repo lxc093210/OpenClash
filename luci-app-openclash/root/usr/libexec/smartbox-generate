@@ -1,59 +1,53 @@
 #!/bin/sh
-# Strict generator: no shell evaluation of UCI values; Python optional? Uses jsonfilter? no.
+# Generate an isolated Smart JSON config from UCI; validate before activation.
 set -eu
-command -v uci >/dev/null || exit 1
-command -v jsonfilter >/dev/null || { echo "jsonfilter required" >&2; exit 1; }
-# JSON escaping through jsonfilter is not supported as encoder; require only safe URL characters.
-CONFIG=/etc/config/smartbox
-OUT=/etc/sing-box-smart/config.json
-[ -f "$CONFIG" ] || exit 1
 umask 077
 mkdir -p /etc/sing-box-smart
-port="$(uci -q get smartbox.main.listen_port || echo 2088)"
-ctrl="$(uci -q get smartbox.main.controller_port || echo 19090)"
-secret="$(uci -q get smartbox.main.api_secret || true)"
-case "$port:$ctrl" in *[!0-9:]*|'') echo "Invalid port" >&2; exit 1;; esac
-[ "$port" -gt 0 ] && [ "$port" -le 65535 ] && [ "$ctrl" -gt 0 ] && [ "$ctrl" -le 65535 ] || exit 1
-case "$secret" in *[!a-zA-Z0-9_-]* ) echo "Invalid secret" >&2; exit 1;; esac
-PROVIDERS=''
-TAGS=''
-n=0
-while IFS= read -r sec; do
-  enabled="$(uci -q get "smartbox.$sec.enabled" || echo 0)"
-  [ "$enabled" = 1 ] || continue
-  tag="$(uci -q get "smartbox.$sec.name" || true)"
-  url="$(uci -q get "smartbox.$sec.url" || true)"
-  interval="$(uci -q get "smartbox.$sec.update_interval" || echo 12h)"
-  case "$tag" in ''|*[!a-zA-Z0-9_-]*) echo "Invalid provider name" >&2; exit 1;; esac
-  case "$url" in https://*) ;; *) echo "Only HTTPS subscriptions allowed" >&2; exit 1;; esac
-  case "$url" in *[\"\\\ \	]* ) echo "Invalid URL characters" >&2; exit 1;; esac
-  case "$interval" in *[!0-9hm]*|'') echo "Invalid interval" >&2; exit 1;; esac
-  [ "$n" -lt 50 ] || { echo "Too many providers" >&2; exit 1; }
-  [ "$n" -eq 0 ] || { PROVIDERS="$PROVIDERS,"; TAGS="$TAGS,"; }
-  PROVIDERS="$PROVIDERS{\"type\":\"remote\",\"tag\":\"$tag\",\"url\":\"$url\",\"update_interval\":\"$interval\",\"http_client\":\"fetch\"}"
-  TAGS="$TAGS\"$tag\""
-  n=$((n+1))
-done <<EOF
-$(uci -q show smartbox | sed -n "s/^smartbox\.\([^=]*\)=provider$/\1/p")
-EOF
-[ "$n" -gt 0 ] || { echo "Enable at least one provider" >&2; exit 1; }
-tmp="$(mktemp /etc/sing-box-smart/config.XXXXXX)"
-trap 'rm -f "$tmp"' EXIT
-cat > "$tmp" <<EOF
-{
- "log":{"level":"info"},
- "http_clients":[{"tag":"fetch","detour":"direct"}],
- "inbounds":[{"type":"mixed","tag":"local-test","listen":"127.0.0.1","listen_port":$port}],
- "providers":[$PROVIDERS],
- "outbounds":[{"type":"smart","tag":"auto","providers":[$TAGS]},{"type":"direct","tag":"direct"}],
- "route":{"final":"auto","default_http_client":"fetch"},
- "experimental":{"cache_file":{"enabled":true,"path":"/etc/sing-box-smart/cache.db"},
- "clash_api":{"external_controller":"127.0.0.1:$ctrl","secret":"$secret"}}
+lua - <<'LUA'
+local uci = require("luci.model.uci").cursor()
+local json = require("luci.jsonc")
+local cfg = uci:get_all("smartbox", "main") or {}
+local function port(value, fallback)
+  local n = tonumber(value or fallback)
+  assert(n and n == math.floor(n) and n >= 1 and n <= 65535, "invalid port")
+  return n
+end
+local providers, tags, seen = {}, {}, {}
+uci:foreach("smartbox", "provider", function(p)
+  if p.enabled == "1" then
+    local tag, url = p.name or "", p.url or ""
+    assert(tag:match("^[%w_-]+$") and not seen[tag], "invalid or duplicate provider name")
+    assert(url:match("^https://") and not url:find("[%c%s]"), "invalid HTTPS URL")
+    local interval = p.update_interval or "12h"
+    assert(interval:match("^[1-9]%d*[hm]$"), "invalid refresh interval")
+    seen[tag] = true
+    providers[#providers+1] = {type="remote", tag=tag, url=url, update_interval=interval, http_client="fetch"}
+    tags[#tags+1] = tag
+  end
+end)
+assert(#providers > 0 and #providers <= 50, "enable 1-50 providers")
+local obj = {
+  log={level="info"},
+  http_clients={{tag="fetch", detour="direct"}},
+  inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=port(cfg.listen_port, 2088)}},
+  providers=providers,
+  outbounds={{type="smart", tag="auto", providers=tags},{type="direct", tag="direct"}},
+  route={final="auto", default_http_client="fetch"},
+  experimental={
+    cache_file={enabled=true, path="/etc/sing-box-smart/cache.db"},
+    clash_api={external_controller="127.0.0.1:" .. port(cfg.controller_port,19090),secret=cfg.api_secret or ""}
+  }
 }
-EOF
+local fp = assert(io.open("/etc/sing-box-smart/config.candidate.json", "w"))
+assert(fp:write(assert(json.stringify(obj))))
+assert(fp:close())
+LUA
 bin="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
-[ -x "$bin" ] || { echo "Smart binary not installed: $bin" >&2; exit 1; }
-"$bin" check -c "$tmp" >/dev/null || exit 1
-mv "$tmp" "$OUT"
-trap - EXIT
-echo "Validated config installed to $OUT"
+[ -x "$bin" ] || { echo "Smart binary unavailable: $bin" >&2; exit 1; }
+if "$bin" check -c /etc/sing-box-smart/config.candidate.json >/dev/null; then
+  mv /etc/sing-box-smart/config.candidate.json /etc/sing-box-smart/config.json
+  echo "Config validated"
+else
+  rm -f /etc/sing-box-smart/config.candidate.json
+  exit 1
+fi
