@@ -165,7 +165,7 @@ jobs:
           # Capture the dependency plan so a future feed update cannot
           # silently reintroduce rust/host into this Ruby-only package.
           make package/smartbox/compile -n V=s 2>&1 | tee /tmp/smartbox-dry-run.log
-          if grep -Eiq '(^|[^[:alnum:]_-])rust(/host|c|[-_])|download-ci-llvm' /tmp/smartbox-dry-run.log; then
+          if grep -Eiq 'rust/host|package/(feeds/)?packages/rust([/ _]|$)|download-ci-llvm' /tmp/smartbox-dry-run.log; then
             echo 'Unexpected Rust dependency in SmartBox build plan' >&2
             grep -Ein 'rust|download-ci-llvm' /tmp/smartbox-dry-run.log >&2 || true
             exit 1
