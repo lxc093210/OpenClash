@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+PREV=/etc/sing-box-smart/sing-box-smart.previous
+[ -s "$PREV" ] || { echo "No previous core" >&2; exit 1; }
+if pidof sing-box-smart >/dev/null 2>&1; then
+ echo "Stop SmartBox before rollback" >&2
+ exit 1
+fi
+cp "$PREV" /usr/bin/sing-box-smart.rollback
+chmod 755 /usr/bin/sing-box-smart.rollback
+mv /usr/bin/sing-box-smart.rollback /usr/bin/sing-box-smart
+echo "Previous Smart core restored"
