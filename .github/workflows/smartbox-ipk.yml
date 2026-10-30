@@ -28,7 +28,8 @@ jobs:
         run: |
           mkdir -p /tmp/sdk/package/smartbox
           cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
-          sed -i 's/PKG_VERSION:=0.48.002/PKG_VERSION:=0.48.002-smartbox1/' /tmp/sdk/package/smartbox/Makefile
+          # Build OpenClash fork as a separate experimental package. Original source untouched.
+          sed -i 's/PKG_VERSION:=0.48.002/PKG_VERSION:=0.48.002/' /tmp/sdk/package/smartbox/Makefile
       - name: Configure
         run: |
           cd /tmp/sdk
