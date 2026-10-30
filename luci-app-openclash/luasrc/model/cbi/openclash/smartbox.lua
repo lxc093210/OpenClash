@@ -16,6 +16,17 @@ controller.default = "19090"
 local secret = s:option(Value, "api_secret", translate("API secret"))
 secret.password = true
 secret.rmempty = true
+secret.description = translate("Required to start: a random token with at least 24 characters. You can generate it below.")
+local keygen = s:option(Button, "_generate_secret", translate("Generate API secret"))
+keygen.inputstyle = "apply"
+function keygen.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-secret-init >/dev/null 2>&1")
+  if rc == 0 then
+    require("luci.http").redirect(require("luci.dispatcher").build_url("admin", "services", "smartbox"))
+  else
+    self.description = translate("Generation failed; check system log.")
+  end
+end
 
 local p = m:section(TypedSection, "provider", translate("HTTPS subscriptions"))
 p.anonymous = true
