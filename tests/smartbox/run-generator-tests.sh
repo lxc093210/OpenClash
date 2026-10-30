@@ -6,6 +6,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/state"
 cp "$ROOT/luci-app-openclash/root/usr/libexec/smartbox-generate" "$TMP/generate"
+chmod +x "$TMP/generate"
 # Only the test copy uses a temporary configuration directory.
 sed -i "s#/etc/sing-box-smart#$TMP/state#g" "$TMP/generate"
 cat > "$TMP/bin/uci" <<'SH'
