@@ -2,6 +2,7 @@
 <h2><%:SmartBox - Smart 节点质量排名%></h2>
 <p><%:独立测试模式：以下数据来自 sing-box Smart 内核，不会改变 OpenClash 当前线路。排名需要真实连接数据积累。%></p>
 <div id="smartbox-message" role="status"><em><%:正在读取 Smart 排名...%></em></div>
+<pre id="smartbox-runtime" aria-live="polite"></pre>
 <div id="smartbox-results"></div>
 <p><button type="button" id="smartbox-refresh" class="btn cbi-button cbi-button-reload"><%:刷新排名%></button></p>
 <script type="text/javascript">
@@ -9,6 +10,7 @@
   'use strict';
   var endpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","status_data")%>';
   var message = document.getElementById('smartbox-message');
+  var runtime = document.getElementById('smartbox-runtime');
   var target = document.getElementById('smartbox-results');
   var button = document.getElementById('smartbox-refresh');
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
@@ -26,8 +28,20 @@
     if (typeof bps !== 'number' || !isFinite(bps) || bps <= 0) return '-';
     return (bps / 1048576).toFixed(2) + ' MiB/s';
   }
+  function field(obj, names) {
+    if (!obj) return undefined;
+    for (var i = 0; i < names.length; i++) {
+      if (obj[names[i]] !== undefined && obj[names[i]] !== null) return obj[names[i]];
+    }
+    return undefined;
+  }
+  function number(obj, names) {
+    var value = field(obj, names);
+    return typeof value === 'number' && isFinite(value) ? value : undefined;
+  }
   function draw(data) {
     clear(target);
+    runtime.textContent = data && data.runtime || '';
     if (!data || data.error) {
       message.textContent = data && data.error || '<%:Smart 数据读取失败%>';
       return;
@@ -58,7 +72,7 @@
       var header = document.createElement('div');
       header.className = 'tr table-titles';
       wrap.appendChild(header);
-      ['#', '<%:节点%>', '<%:权重%>', '<%:状态%>', '<%:响应%>', '<%:下载%>', '<%:成功/失败%>'].forEach(function (x) {
+      ['#', '<%:节点%>', '<%:权重/质量%>', '<%:状态%>', '<%:探测/响应%>', '<%:下载%>', '<%:成功/失败%>', '<%:稳定性%>'].forEach(function (x) {
         put(header, 'div', x, 'th');
       });
       rows.forEach(function (node, i) {
@@ -66,15 +80,29 @@
         row.className = 'tr';
         wrap.appendChild(row);
         put(row, 'div', i + 1, 'td');
-        put(row, 'div', node.Name || '-', 'td');
-        put(row, 'div', typeof node.Weight === 'number' ? node.Weight.toFixed(1) : '-', 'td');
-        var status = !node.Alive ? '<%:离线%>' :
-          node.BackedOff ? '<%:退避中%>' :
-          node.Pool ? '<%:候选池%>' : '<%:可用%>';
+        put(row, 'div', field(node, ['Name', 'name']) || '-', 'td');
+        var weight = number(node, ['Weight', 'weight', 'score']);
+        var quality = number(node, ['Quality', 'quality']);
+        put(row, 'div', (weight !== undefined ? weight.toFixed(1) : '-') +
+          (quality !== undefined ? ' / ' + quality.toFixed(3) : ''), 'td');
+        var alive = field(node, ['Alive', 'alive']);
+        var backedOff = field(node, ['BackedOff', 'backedOff', 'backed_off']);
+        var inPool = field(node, ['Pool', 'pool']);
+        var status = alive === false ? '<%:离线%>' :
+          backedOff ? '<%:退避中%>' :
+          inPool ? '<%:候选池%>' : '<%:可用%>';
         put(row, 'div', status, 'td');
-        put(row, 'div', measurement(node.ResponseMs, ' ms'), 'td');
-        put(row, 'div', speed(node.DownloadBps), 'td');
-        put(row, 'div', (node.Success || 0) + ' / ' + (node.Failure || 0), 'td');
+        var probe = measurement(number(node, ['ProbeMs', 'probeMs', 'probe_ms']), ' ms');
+        var response = measurement(number(node, ['ResponseMs', 'responseMs', 'response_ms']), ' ms');
+        put(row, 'div', probe + ' / ' + response, 'td');
+        put(row, 'div', speed(number(node, ['DownloadBps', 'downloadBps', 'download_bps'])), 'td');
+        var success = field(node, ['Success', 'success', 'sampleCount']) || 0;
+        var failure = field(node, ['Failure', 'failure']) || 0;
+        put(row, 'div', success + ' / ' + failure, 'td');
+        var reliability = number(node, ['Reliability', 'reliability', 'stability']);
+        var loss = number(node, ['Loss', 'loss']);
+        put(row, 'div', reliability !== undefined ? reliability.toFixed(3) +
+          (loss !== undefined ? ' / ' + (loss * 100).toFixed(2) + '%' : '') : '-', 'td');
       });
     });
   }

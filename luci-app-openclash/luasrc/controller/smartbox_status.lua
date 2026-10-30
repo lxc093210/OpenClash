@@ -22,8 +22,12 @@ function status_data()
     http.write_json({error="Invalid controller port"})
     return
   end
-  -- Only call the localhost controller, never user-supplied host/URL.
   local secret = uci:get("smartbox","main","api_secret") or ""
+  if not secret:match("^[%w_-]+$") or #secret < 24 then
+    http.write_json({error="SmartBox API secret is not configured"})
+    return
+  end
+  -- Only call the localhost controller, never a user-supplied host/URL.
   local function fetch(path)
     local cmd = "curl -fsS --max-time 3 -H " ..
       util.shellquote("Authorization: Bearer " .. secret) ..
@@ -40,5 +44,8 @@ function status_data()
   if type(details) == "table" and type(details.groups) == "table" then
     data.groups = details.groups
   end
+  -- This helper deliberately exposes only the read-only service summary. It
+  -- never includes UCI values, provider URLs, or the API token.
+  data.runtime = sys.exec("/usr/libexec/smartbox-status 2>/dev/null") or ""
   http.write_json(data)
 end

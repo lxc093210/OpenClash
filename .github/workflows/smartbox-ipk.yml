@@ -5,73 +5,123 @@ on:
   push:
     branches: [feature/sing-box-smart-adapter]
     paths:
-      - 'luci-app-openclash/Makefile'
+      - 'luci-app-openclash/**'
       - '.github/workflows/smartbox-ipk.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: smartbox-ipk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENWRT_RELEASE: '24.10.3'
+  SDK_URL: 'https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst'
+  SDK_SHA256: '5e189d938c2320c4c86a9565133970436a7ddf684ef8d01ee1c18c561c4ed643'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Prepare OpenWrt SDK
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd
-          wget -q https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst -O /tmp/sdk.tar.zst
-          echo '5e189d938c2320c4c86a9565133970436a7ddf684ef8d01ee1c18c561c4ed643  /tmp/sdk.tar.zst' | sha256sum -c -
+          wget -q --https-only --retry-connrefused --tries=3 "$SDK_URL" -O /tmp/sdk.tar.zst
+          printf '%s  %s\n' "$SDK_SHA256" /tmp/sdk.tar.zst | sha256sum -c -
           mkdir -p /tmp/sdk
           tar --zstd -xf /tmp/sdk.tar.zst -C /tmp/sdk --strip-components=1
+
       - name: Import package source
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p /tmp/sdk/package/smartbox
           cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
-          # Build in the SDK workspace; this does not publish or install the result.
-      - name: Configure
+
+      - name: Configure matching release feeds
+        shell: bash
         run: |
+          set -euo pipefail
           cd /tmp/sdk
+          # These are the feed commits recorded by OpenWrt v24.10.3. Using
+          # moving feed HEAD can mix incompatible Rust/Ruby build systems
+          # into a release SDK.
+          printf '%s\n' \
+            'src-git packages https://git.openwrt.org/feed/packages.git^44cff71992c291ae11b7b37606c70db62dc0674e' \
+            'src-git luci https://git.openwrt.org/project/luci.git^923f8d991a49dc3d899fd24fc92ae7b1653ee4d0' \
+            'src-git routing https://git.openwrt.org/feed/routing.git^885ae6f9d0c0f47a1a6321e1cc7e9c7e20cc2681' \
+            'src-git telephony https://git.openwrt.org/feed/telephony.git^2a4541d46199ac96fac214d02c908402831c4dc6' \
+            > feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+          # The v24.10.3 Rust recipe requests a CI LLVM bundle. That URL is
+          # not available for this compiler tuple anymore. OpenWrt's newer
+          # recipe builds LLVM locally, which is the compatible fallback.
+          rust_makefile=feeds/packages/lang/rust/Makefile
+          test -f "$rust_makefile"
+          sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/' "$rust_makefile"
+          grep -q -- '--set=llvm.download-ci-llvm=false' "$rust_makefile"
+
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
-          # Ruby enables YJIT by default on x86_64, which adds an unnecessary
-          # rust/host dependency (and Rust's stale CI LLVM download returns 404).
-          # OpenClash uses Ruby for YAML parsing, not Ruby's optional YJIT.
+          # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
+          # YJIT. Keeping this disabled also avoids the rust/host dependency.
           printf '# CONFIG_RUBY_ENABLE_YJIT is not set\n' >> .config
           make defconfig
-          grep -q '^# CONFIG_RUBY_ENABLE_YJIT is not set
+          grep -q '^# CONFIG_RUBY_ENABLE_YJIT is not set$' .config
+          if grep -q '^CONFIG_RUBY_ENABLE_YJIT=' .config; then
+            echo 'Ruby YJIT unexpectedly enabled' >&2
+            exit 1
+          fi
+          printf '%s\n' 'Resolved feed revisions:'
+          git -C feeds/packages rev-parse HEAD
+          git -C feeds/luci rev-parse HEAD
+
       - name: Build OpenClash translation compiler
+        shell: bash
         run: |
+          set -euo pipefail
           make -C /tmp/sdk/package/smartbox/tools/po2lmo
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
+
       - name: Compile package
+        shell: bash
         run: |
+          set -euo pipefail
           cd /tmp/sdk
-          # OpenWrt's Rust host bootstrap misidentifies third-party GitHub
-          # runners as rust-lang's own CI (openwrt/packages#26623).
-          # Do not change the globally visible GitHub Actions environment.
-          env -u GITHUB_ACTIONS -u CI make package/smartbox/compile V=s -j2
+          # The Rust recipe is patched above, so a host LLVM CI download is
+          # never attempted even on a third-party GitHub runner.
+          make package/smartbox/compile V=s -j2
+
       - name: Find IPK
+        shell: bash
         run: |
-          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print
-          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print -quit | grep -q .
+          set -euo pipefail
+          find /tmp/sdk/bin/packages -type f -name '*openclash*.ipk' -print
+          find /tmp/sdk/bin/packages -type f -name '*openclash*.ipk' -print -quit | grep -q .
+
       - name: Inspect package payload
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           IPK="$(find /tmp/sdk/bin/packages -type f -name 'luci-app-openclash*.ipk' -print -quit)"
-          [ -n "$IPK" ] || exit 1
+          [ -n "$IPK" ]
           mkdir -p /tmp/smartbox-inspect
           cd /tmp/smartbox-inspect
-          # OpenWrt packages may be gzip-tar IPKs rather than ar archives.
           if ar t "$IPK" >/dev/null 2>&1; then
             ar x "$IPK"
           else
             tar -xf "$IPK"
           fi
           DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
-          [ -n "$DATA" ] || { echo 'Missing data archive'; exit 1; }
+          [ -n "$DATA" ]
           tar -tf "$DATA" > /tmp/smartbox-manifest.txt
           for file in \
             etc/config/smartbox \
@@ -81,62 +131,12 @@ jobs:
             usr/lib/lua/luci/controller/smartbox.lua \
             usr/lib/lua/luci/view/openclash/smartbox_status.htm; do
             grep -Eq "^((\\./)?)$file$" /tmp/smartbox-manifest.txt || {
-              echo "Missing expected package file: $file"
+              echo "Missing expected package file: $file" >&2
               exit 1
             }
           done
-          echo "SmartBox package files verified"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: smartbox-openwrt-x86-64-ipk-experimental
-          path: /tmp/sdk/bin/packages/**/*openclash*.ipk
-          if-no-files-found: error
- .config
-      - name: Build OpenClash translation compiler
-        run: |
-          make -C /tmp/sdk/package/smartbox/tools/po2lmo
-          sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
-          command -v po2lmo
-      - name: Compile package
-        run: |
-          cd /tmp/sdk
-          # OpenWrt's Rust host bootstrap misidentifies third-party GitHub
-          # runners as rust-lang's own CI (openwrt/packages#26623).
-          # Do not change the globally visible GitHub Actions environment.
-          env -u GITHUB_ACTIONS -u CI make package/smartbox/compile V=s -j2
-      - name: Find IPK
-        run: |
-          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print
-          find /tmp/sdk/bin/packages -name '*openclash*.ipk' -print -quit | grep -q .
-      - name: Inspect package payload
-        run: |
-          set -eu
-          IPK="$(find /tmp/sdk/bin/packages -type f -name 'luci-app-openclash*.ipk' -print -quit)"
-          [ -n "$IPK" ] || exit 1
-          mkdir -p /tmp/smartbox-inspect
-          cd /tmp/smartbox-inspect
-          # OpenWrt packages may be gzip-tar IPKs rather than ar archives.
-          if ar t "$IPK" >/dev/null 2>&1; then
-            ar x "$IPK"
-          else
-            tar -xf "$IPK"
-          fi
-          DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
-          [ -n "$DATA" ] || { echo 'Missing data archive'; exit 1; }
-          tar -tf "$DATA" > /tmp/smartbox-manifest.txt
-          for file in \
-            etc/config/smartbox \
-            etc/init.d/smartbox \
-            usr/libexec/smartbox-generate \
-            usr/libexec/smartbox-core-install \
-            usr/lib/lua/luci/controller/smartbox.lua \
-            usr/lib/lua/luci/view/openclash/smartbox_status.htm; do
-            grep -Eq "^((\\./)?)$file$" /tmp/smartbox-manifest.txt || {
-              echo "Missing expected package file: $file"
-              exit 1
-            }
-          done
-          echo "SmartBox package files verified"
+          echo 'SmartBox package files verified'
+
       - uses: actions/upload-artifact@v4
         with:
           name: smartbox-openwrt-x86-64-ipk-experimental
