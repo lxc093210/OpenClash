@@ -1,0 +1,31 @@
+name: SmartBox generator tests
+
+on:
+  push:
+    branches: [feature/sing-box-smart-adapter]
+    paths:
+      - 'luci-app-openclash/root/usr/libexec/smartbox-generate'
+      - 'tests/smartbox/**'
+      - '.github/workflows/smartbox-generator-tests.yml'
+  pull_request:
+    paths:
+      - 'luci-app-openclash/root/usr/libexec/smartbox-generate'
+      - 'tests/smartbox/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua and JSON module
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1 lua-cjson
+      - name: Verify executable syntax
+        run: sh -n luci-app-openclash/root/usr/libexec/smartbox-generate
+      - name: Run generator tests using mocked OpenWrt UCI
+        run: bash tests/smartbox/run-generator-tests.sh
