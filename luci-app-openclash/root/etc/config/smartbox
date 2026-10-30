@@ -4,7 +4,6 @@ config smartbox 'main'
 	option listen_port '2088'
 	option controller_port '19090'
 	option api_secret ''
-	option auto_start '0'
 
 config provider
 	option name 'airport1'
