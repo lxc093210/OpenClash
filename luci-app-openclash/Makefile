@@ -76,6 +76,7 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/conffiles
+/etc/config/smartbox
 endef
 
 define Package/$(PKG_NAME)/preinst
@@ -91,6 +92,10 @@ endef
 
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
+	# Keep subscription URLs and API token inaccessible to unprivileged local users.
+	if [ -z "$IPKG_INSTROOT" ] && [ -f /etc/config/smartbox ]; then
+		chmod 0600 /etc/config/smartbox
+	fi
 	exit 0
 endef
 
