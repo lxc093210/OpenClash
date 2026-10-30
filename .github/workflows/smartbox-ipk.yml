@@ -65,23 +65,41 @@ jobs:
           # not available for this compiler tuple anymore. OpenWrt's newer
           # recipe builds LLVM locally, which is the compatible fallback.
           rust_makefile=feeds/packages/lang/rust/Makefile
-          test -f "$rust_makefile"
+          test -f "$rust_makefile" || {
+            echo "Rust recipe not found at $rust_makefile" >&2
+            find feeds -path '*/rust/Makefile' -print >&2
+            exit 1
+          }
           sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/' "$rust_makefile"
-          grep -q -- '--set=llvm.download-ci-llvm=false' "$rust_makefile"
+          grep -q -- '--set=llvm.download-ci-llvm=false' "$rust_makefile" || {
+            echo 'Rust recipe still requests CI LLVM' >&2
+            grep -n 'download-ci-llvm' "$rust_makefile" >&2 || true
+            exit 1
+          }
 
           # Ruby's YJIT is not used by OpenClash. Remove the conditional host
           # dependency as a second guard: some SDK defconfig combinations
           # enable the symbol after package metadata is re-evaluated.
           ruby_makefile=feeds/packages/lang/ruby/Makefile
-          test -f "$ruby_makefile"
+          test -f "$ruby_makefile" || {
+            echo "Ruby recipe not found at $ruby_makefile" >&2
+            find feeds -path '*/ruby/Makefile' -print >&2
+            exit 1
+          }
           sed -i 's/PKG_BUILD_DEPENDS:=ruby\/host RUBY_ENABLE_YJIT:rust\/host/PKG_BUILD_DEPENDS:=ruby\/host/' "$ruby_makefile"
-          ! grep -q 'rust/host' "$ruby_makefile"
+          if grep -n 'rust/host' "$ruby_makefile"; then
+            echo 'Ruby recipe still contains a rust/host dependency' >&2
+            exit 1
+          fi
           # feeds install normally creates a symlink, but handle SDKs that
           # materialize the package under package/feeds as well.
           installed_ruby_makefile=package/feeds/packages/ruby/Makefile
           if [ -f "$installed_ruby_makefile" ]; then
             sed -i 's/PKG_BUILD_DEPENDS:=ruby\/host RUBY_ENABLE_YJIT:rust\/host/PKG_BUILD_DEPENDS:=ruby\/host/' "$installed_ruby_makefile"
-            ! grep -q 'rust/host' "$installed_ruby_makefile"
+            if grep -n 'rust/host' "$installed_ruby_makefile"; then
+              echo 'Installed Ruby recipe still contains a rust/host dependency' >&2
+              exit 1
+            fi
           fi
 
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
@@ -89,18 +107,19 @@ jobs:
           # YJIT. Keeping this disabled also avoids the rust/host dependency.
           printf '# CONFIG_RUBY_ENABLE_YJIT is not set\n' >> .config
           make defconfig
-          grep -q '^# CONFIG_RUBY_ENABLE_YJIT is not set$' .config
-          if grep -q '^CONFIG_RUBY_ENABLE_YJIT=' .config; then
+          if grep -Eq '^CONFIG_RUBY_ENABLE_YJIT(=|$)' .config; then
             echo 'Ruby YJIT unexpectedly enabled' >&2
+            grep -n 'RUBY_ENABLE_YJIT' .config >&2 || true
             exit 1
           fi
           if grep -q '^CONFIG_PACKAGE_rust=' .config; then
             echo 'Rust target package unexpectedly selected' >&2
+            grep -n '^CONFIG_PACKAGE_rust=' .config >&2 || true
             exit 1
           fi
           printf '%s\n' 'Resolved feed revisions:'
-          git -C feeds/packages rev-parse HEAD
-          git -C feeds/luci rev-parse HEAD
+          git -C feeds/packages rev-parse HEAD 2>/dev/null || true
+          git -C feeds/luci rev-parse HEAD 2>/dev/null || true
 
       - name: Build OpenClash translation compiler
         shell: bash
