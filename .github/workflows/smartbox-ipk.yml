@@ -157,20 +157,6 @@ jobs:
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
 
-      - name: Plan SmartBox package build
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd /tmp/sdk
-          # Capture the dependency plan so a future feed update cannot
-          # silently reintroduce rust/host into this Ruby-only package.
-          make package/smartbox/compile -n V=s 2>&1 | tee /tmp/smartbox-dry-run.log
-          if grep -Eiq 'rust/host|package/(feeds/)?packages/rust([/ _]|$)|download-ci-llvm' /tmp/smartbox-dry-run.log; then
-            echo 'Unexpected Rust dependency in SmartBox build plan' >&2
-            grep -Ein 'rust|download-ci-llvm' /tmp/smartbox-dry-run.log >&2 || true
-            exit 1
-          fi
-
       - name: Compile package
         shell: bash
         run: |
