@@ -7,7 +7,7 @@ on:
       - 'luci-app-openclash/luasrc/controller/smartbox*.lua'
       - 'luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua'
       - 'luci-app-openclash/root/etc/init.d/smartbox'
-      - 'luci-app-openclash/root/usr/libexec/smartbox-generate'
+      - 'luci-app-openclash/root/usr/libexec/smartbox-*'
       - '.github/workflows/smartbox-validation.yml'
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
       - name: Shell syntax
         run: |
           sh -n luci-app-openclash/root/etc/init.d/smartbox
-          sh -n luci-app-openclash/root/usr/libexec/smartbox-generate
+          for f in luci-app-openclash/root/usr/libexec/smartbox-*; do sh -n "$f"; done
       - name: Lua syntax
         run: |
           luac -p luci-app-openclash/luasrc/controller/smartbox.lua
