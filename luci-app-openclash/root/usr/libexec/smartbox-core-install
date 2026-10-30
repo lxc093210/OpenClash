@@ -2,6 +2,13 @@
 # Install a pinned sing-box Smart release with SHA256 verification.
 set -eu
 umask 077
+if pidof sing-box-smart >/dev/null 2>&1; then
+ echo "Stop SmartBox before replacing the core" >&2
+ exit 1
+fi
+for utility in curl sha256sum tar find awk; do
+ command -v "$utility" >/dev/null 2>&1 || { echo "Missing tool: $utility" >&2; exit 1; }
+done
 VERSION="1.15.0-alpha.13-xiaobaf14g.8"
 BASE="https://github.com/MiChongs/sing-box/releases/download/v$VERSION"
 ARCH="$(uname -m)"
@@ -13,7 +20,7 @@ esac
 NAME="sing-box-$VERSION-$PLATFORM"
 TMP="$(mktemp -d /tmp/smartbox-core.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
-echo "Downloading signed release metadata and binary for $PLATFORM"
+echo "Downloading checksum manifest and binary for $PLATFORM"
 curl -fLSs --retry 2 "$BASE/SHA256SUMS" -o "$TMP/SHA256SUMS"
 curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
 LINE="$(grep " $NAME.tar.gz$" "$TMP/SHA256SUMS" | head -n 1 || true)"
