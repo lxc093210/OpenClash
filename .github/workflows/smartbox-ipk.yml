@@ -112,7 +112,7 @@ jobs:
           grep -n 'download-ci-llvm' "$rust_makefile" || true
           grep -n 'PKG_BUILD_DEPENDS' "$ruby_makefile" || true
 
-      - name: Configure SDK package selection
+      - name: Seed SDK package selection
         shell: bash
         run: |
           set -euxo pipefail
@@ -122,7 +122,19 @@ jobs:
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
           # YJIT. Keeping this disabled also avoids the rust/host dependency.
           printf '# CONFIG_RUBY_ENABLE_YJIT is not set\n' >> .config
+
+      - name: Resolve SDK package configuration
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk
           make defconfig
+
+      - name: Verify SDK package configuration
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk
           if grep -Eq '^CONFIG_RUBY_ENABLE_YJIT(=|$)' .config; then
             echo 'Ruby YJIT unexpectedly enabled' >&2
             grep -n 'RUBY_ENABLE_YJIT' .config >&2 || true
