@@ -119,6 +119,7 @@ jobs:
           cd /tmp/sdk
 
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
+          printf 'CONFIG_PACKAGE_rust=n\n' >> .config
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
           # YJIT. Keeping this disabled also avoids the rust/host dependency.
           printf 'CONFIG_RUBY_ENABLE_YJIT=n\n' >> .config
@@ -140,6 +141,11 @@ jobs:
             grep -n 'RUBY_ENABLE_YJIT' .config >&2 || true
             exit 1
           fi
+          if grep -Eq '^CONFIG_PACKAGE_rust=[ym]$' .config; then
+            echo 'Rust target package unexpectedly selected' >&2
+            grep -n '^CONFIG_PACKAGE_rust=' .config >&2 || true
+            exit 1
+          fi
           printf '%s\n' 'Resolved package configuration:'
           grep -E '^(CONFIG_PACKAGE_luci-app-openclash|CONFIG_RUBY_ENABLE_YJIT|CONFIG_PACKAGE_rust)' .config || true
 
@@ -151,7 +157,7 @@ jobs:
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
 
-      - name: Compile package
+      - name: Plan SmartBox package build
         shell: bash
         run: |
           set -euo pipefail
@@ -161,8 +167,15 @@ jobs:
           make package/smartbox/compile -n V=s 2>&1 | tee /tmp/smartbox-dry-run.log
           if grep -Eiq '(^|[^[:alnum:]_-])rust(/host|c|[-_])|download-ci-llvm' /tmp/smartbox-dry-run.log; then
             echo 'Unexpected Rust dependency in SmartBox build plan' >&2
+            grep -Ein 'rust|download-ci-llvm' /tmp/smartbox-dry-run.log >&2 || true
             exit 1
           fi
+
+      - name: Compile package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/sdk
           make package/smartbox/compile V=s -j2
 
       - name: Find IPK
