@@ -44,10 +44,10 @@ jobs:
           mkdir -p /tmp/sdk/package/smartbox
           cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
 
-      - name: Configure matching release feeds
+      - name: Update matching release feeds
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           cd /tmp/sdk
           # These are the feed commits recorded by OpenWrt v24.10.3. Using
           # moving feed HEAD can mix incompatible Rust/Ruby build systems
@@ -60,6 +60,12 @@ jobs:
             > feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+      - name: Patch release feed recipes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk
 
           # The v24.10.3 Rust recipe requests a CI LLVM bundle. That URL is
           # not available for this compiler tuple anymore. OpenWrt's newer
@@ -102,6 +108,16 @@ jobs:
             fi
           fi
 
+          printf '%s\n' 'Patched Rust and Ruby recipes:'
+          grep -n 'download-ci-llvm' "$rust_makefile" || true
+          grep -n 'PKG_BUILD_DEPENDS' "$ruby_makefile" || true
+
+      - name: Configure SDK package selection
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk
+
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
           # YJIT. Keeping this disabled also avoids the rust/host dependency.
@@ -117,9 +133,8 @@ jobs:
             grep -n '^CONFIG_PACKAGE_rust=' .config >&2 || true
             exit 1
           fi
-          printf '%s\n' 'Resolved feed revisions:'
-          git -C feeds/packages rev-parse HEAD 2>/dev/null || true
-          git -C feeds/luci rev-parse HEAD 2>/dev/null || true
+          printf '%s\n' 'Resolved package configuration:'
+          grep -E '^(CONFIG_PACKAGE_luci-app-openclash|CONFIG_RUBY_ENABLE_YJIT|CONFIG_PACKAGE_rust)' .config || true
 
       - name: Build OpenClash translation compiler
         shell: bash
