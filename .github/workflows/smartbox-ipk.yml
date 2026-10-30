@@ -157,6 +157,13 @@ jobs:
           sudo install -m 0755 /tmp/sdk/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
           command -v po2lmo
 
+      - name: Build Ruby host dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/sdk
+          make package/feeds/packages/ruby/host/compile V=s -j1
+
       - name: Compile package
         shell: bash
         run: |
