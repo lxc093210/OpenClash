@@ -1,5 +1,5 @@
 local m = Map("smartbox", translate("sing-box Smart (experimental)"),
- translate("Independent localhost-only test runner. Does not change OpenClash DNS, firewall, or TUN. Disable OpenClash before enabling SmartBox; provider URLs are confidential."))
+ translate("Independent localhost-only test runner. Does not change OpenClash DNS, firewall, or TUN. May run alongside OpenClash in this localhost-only mode. It does not transparently proxy LAN clients; provider URLs are confidential. Save changes before starting the service."))
 
 local s = m:section(NamedSection, "main", "smartbox", translate("Runtime"))
 s.addremove = false
