@@ -53,10 +53,10 @@ jobs:
           # moving feed HEAD can mix incompatible Rust/Ruby build systems
           # into a release SDK.
           printf '%s\n' \
-            'src-git packages https://git.openwrt.org/feed/packages.git^44cff71992c291ae11b7b37606c70db62dc0674e' \
-            'src-git luci https://git.openwrt.org/project/luci.git^923f8d991a49dc3d899fd24fc92ae7b1653ee4d0' \
-            'src-git routing https://git.openwrt.org/feed/routing.git^885ae6f9d0c0f47a1a6321e1cc7e9c7e20cc2681' \
-            'src-git telephony https://git.openwrt.org/feed/telephony.git^2a4541d46199ac96fac214d02c908402831c4dc6' \
+            'src-git packages https://github.com/openwrt/packages.git^44cff71992c291ae11b7b37606c70db62dc0674e' \
+            'src-git luci https://github.com/openwrt/luci.git^923f8d991a49dc3d899fd24fc92ae7b1653ee4d0' \
+            'src-git routing https://github.com/openwrt/routing.git^885ae6f9d0c0f47a1a6321e1cc7e9c7e20cc2681' \
+            'src-git telephony https://github.com/openwrt/telephony.git^2a4541d46199ac96fac214d02c908402831c4dc6' \
             > feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
@@ -68,6 +68,14 @@ jobs:
           test -f "$rust_makefile"
           sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/' "$rust_makefile"
           grep -q -- '--set=llvm.download-ci-llvm=false' "$rust_makefile"
+
+          # Ruby's YJIT is not used by OpenClash. Remove the conditional host
+          # dependency as a second guard: some SDK defconfig combinations
+          # enable the symbol after package metadata is re-evaluated.
+          ruby_makefile=feeds/packages/lang/ruby/Makefile
+          test -f "$ruby_makefile"
+          sed -i 's/PKG_BUILD_DEPENDS:=ruby\/host RUBY_ENABLE_YJIT:rust\/host/PKG_BUILD_DEPENDS:=ruby\/host/' "$ruby_makefile"
+          ! grep -q 'rust/host' "$ruby_makefile"
 
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
