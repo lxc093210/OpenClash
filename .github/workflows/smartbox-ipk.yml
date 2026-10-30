@@ -169,6 +169,22 @@ jobs:
           # recorded in the generated IPK control metadata.
           make -C package/smartbox TOPDIR=/tmp/sdk compile V=s -j1
 
+      - name: Validate Smart config with pinned core
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=1.15.0-alpha.13-xiaobaf14g.8
+          name="sing-box-$version-linux-amd64"
+          curl -fLSs --retry 2 \
+            "https://github.com/MiChongs/sing-box/releases/download/v$version/$name.tar.gz" \
+            -o /tmp/sing-box-smart.tar.gz
+          printf '%s  %s\n' \
+            99f92c1e4ea3f58b3af9a5f2c991cbf86b0e8ef812f428a859ec0415d967573d \
+            /tmp/sing-box-smart.tar.gz | sha256sum -c -
+          tar -xOzf /tmp/sing-box-smart.tar.gz "$name" > /tmp/sing-box-smart
+          chmod 0755 /tmp/sing-box-smart
+          /tmp/sing-box-smart check -c "$GITHUB_WORKSPACE/tests/smartbox-local.json"
+
       - name: Find IPK
         shell: bash
         run: |
@@ -191,10 +207,13 @@ jobs:
           fi
           CONTROL="$(find . -maxdepth 1 -name 'control.tar.*' -print -quit)"
           [ -n "$CONTROL" ]
-          tar -xOf "$CONTROL" ./control | grep -E '^Depends:.*(bash|ruby|ruby-yaml)' || {
-            echo 'Missing expected runtime dependencies in package control' >&2
-            exit 1
-          }
+          depends="$(tar -xOf "$CONTROL" ./control | sed -n 's/^Depends: //p')"
+          for dep in dnsmasq-full bash curl ca-bundle ip-full ruby ruby-yaml kmod-tun unzip; do
+            printf '%s\n' "$depends" | grep -Eq "(^|[ ,])${dep}([ ,(]|$)" || {
+              echo "Missing runtime dependency: $dep" >&2
+              exit 1
+            }
+          done
           DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
           [ -n "$DATA" ]
           tar -tf "$DATA" > /tmp/smartbox-manifest.txt
@@ -210,6 +229,14 @@ jobs:
               exit 1
             }
           done
+          tar -tvf "$DATA" | awk '
+            $NF == "./etc/init.d/smartbox" || $NF == "./usr/libexec/smartbox-generate" ||
+            $NF == "./usr/libexec/smartbox-core-install" || $NF == "./usr/libexec/smartbox-core-rollback" {
+              if ($1 != "-rwxr-xr-x") exit 1
+              count++
+            }
+            END { if (count != 4) exit 1 }
+          '
           echo 'SmartBox package files verified'
 
       - uses: actions/upload-artifact@v4

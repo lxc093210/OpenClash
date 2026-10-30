@@ -6,39 +6,35 @@ if pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before replacing the core" >&2
  exit 1
 fi
-for utility in curl sha256sum tar find awk; do
+for utility in curl sha256sum tar awk; do
  command -v "$utility" >/dev/null 2>&1 || { echo "Missing tool: $utility" >&2; exit 1; }
 done
 VERSION="1.15.0-alpha.13-xiaobaf14g.8"
 BASE="https://github.com/MiChongs/sing-box/releases/download/v$VERSION"
 ARCH="$(uname -m)"
 case "$ARCH" in
- x86_64) PLATFORM=linux-amd64 ;;
- aarch64) PLATFORM=linux-arm64 ;;
+ x86_64)
+  PLATFORM=linux-amd64
+  EXPECTED=99f92c1e4ea3f58b3af9a5f2c991cbf86b0e8ef812f428a859ec0415d967573d
+  ;;
+ aarch64)
+  PLATFORM=linux-arm64-musl
+  EXPECTED=e04f6e586582155d4fef94e20629ae5aee6e674cb40335d3a4a0c2e93920adff
+  ;;
  *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 NAME="sing-box-$VERSION-$PLATFORM"
 TMP="$(mktemp -d /tmp/smartbox-core.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
-echo "Downloading checksum manifest and binary for $PLATFORM"
-curl -fLSs --retry 2 "$BASE/SHA256SUMS" -o "$TMP/SHA256SUMS"
+echo "Downloading pinned Smart core for $PLATFORM"
 curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
-LINE="$(grep " $NAME.tar.gz$" "$TMP/SHA256SUMS" | head -n 1 || true)"
-[ -n "$LINE" ] || { echo "Checksum not found in upstream SHA256SUMS" >&2; exit 1; }
-case "$LINE" in
-  *"$NAME.tar.gz") ;;
-  *) echo "Unexpected checksum entry" >&2; exit 1 ;;
-esac
-EXPECTED="$(printf '%s\n' "$LINE" | awk '{print $1}')"
 ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
 [ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA256 mismatch" >&2; exit 1; }
-tar -tzf "$TMP/$NAME.tar.gz" | while IFS= read -r entry; do
- case "$entry" in /*|../*|*/../*|*/..) echo "Unsafe archive path" >&2; exit 1;; esac
-done
-mkdir -p "$TMP/extracted"
-tar -xzf "$TMP/$NAME.tar.gz" -C "$TMP/extracted"
-EXE="$(find "$TMP/extracted" -type f -name "$NAME" | head -n 1)"
-[ -n "$EXE" ] || { echo "Executable missing" >&2; exit 1; }
+EXE="$TMP/$NAME"
+tar -xOzf "$TMP/$NAME.tar.gz" "$NAME" > "$EXE" || {
+ echo "Executable missing from release archive" >&2; exit 1;
+}
+[ -s "$EXE" ] || { echo "Executable is empty" >&2; exit 1; }
 chmod 700 "$EXE"
 "$EXE" version | grep -F "$VERSION" >/dev/null || { echo "Unexpected binary version" >&2; exit 1; }
 mkdir -p /usr/bin /etc/sing-box-smart

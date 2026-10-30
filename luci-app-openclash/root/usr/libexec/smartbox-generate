@@ -4,7 +4,8 @@ set -eu
 umask 077
 mkdir -p /etc/sing-box-smart
 chmod 0700 /etc/sing-box-smart
-CANDIDATE=/etc/sing-box-smart/config.candidate.json
+CANDIDATE="$(mktemp /etc/sing-box-smart/config.XXXXXX)"
+export CANDIDATE
 trap 'rm -f "$CANDIDATE"' EXIT HUP INT TERM
 lua - <<'LUA'
 local uci = require("luci.model.uci").cursor()
@@ -18,6 +19,9 @@ end
 assert(cfg.api_secret and #cfg.api_secret >= 24 and
   cfg.api_secret:match("^[%w_-]+$"),
   "API secret must contain at least 24 letters/numbers")
+local listen_port = port(cfg.listen_port, 2088)
+local controller_port = port(cfg.controller_port, 19090)
+assert(listen_port ~= controller_port, "proxy and controller ports must differ")
 local providers, tags, seen = {}, {}, {}
 uci:foreach("smartbox", "provider", function(p)
   if p.enabled == "1" then
@@ -38,16 +42,16 @@ assert(#providers > 0 and #providers <= 50, "enable 1-50 providers")
 local obj = {
   log={level="info"},
   http_clients={{tag="fetch", detour="direct"}},
-  inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=port(cfg.listen_port, 2088)}},
+  inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}},
   providers=providers,
   outbounds={{type="smart", tag="auto", providers=tags},{type="direct", tag="direct"}},
   route={final="auto", default_http_client="fetch"},
   experimental={
     cache_file={enabled=true, path="/etc/sing-box-smart/cache.db"},
-    clash_api={external_controller="127.0.0.1:" .. port(cfg.controller_port,19090),secret=cfg.api_secret or ""}
+    clash_api={external_controller="127.0.0.1:" .. controller_port,secret=cfg.api_secret}
   }
 }
-local fp = assert(io.open("/etc/sing-box-smart/config.candidate.json", "w"))
+local fp = assert(io.open(assert(os.getenv("CANDIDATE")), "w"))
 assert(fp:write(assert(json.stringify(obj))))
 assert(fp:close())
 LUA

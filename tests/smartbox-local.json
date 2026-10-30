@@ -1,0 +1,12 @@
+{
+  "log": {"level": "info"},
+  "http_clients": [{"tag": "fetch", "detour": "direct"}],
+  "inbounds": [{"type": "mixed", "tag": "local-test", "listen": "127.0.0.1", "listen_port": 2088}],
+  "providers": [{"type": "remote", "tag": "example", "url": "https://example.invalid/subscription", "update_interval": "12h", "http_client": "fetch"}],
+  "outbounds": [{"type": "smart", "tag": "auto", "providers": ["example"]}, {"type": "direct", "tag": "direct"}],
+  "route": {"final": "auto", "default_http_client": "fetch"},
+  "experimental": {
+    "cache_file": {"enabled": true, "path": "./smartbox-test-cache.db"},
+    "clash_api": {"external_controller": "127.0.0.1:19090", "secret": "00000000000000000000000000000000"}
+  }
+}
