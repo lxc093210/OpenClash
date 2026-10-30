@@ -1,0 +1,36 @@
+#!/bin/sh
+# Install a pinned sing-box Smart release with SHA256 verification.
+set -eu
+umask 077
+VERSION="1.15.0-alpha.13-xiaobaf14g.8"
+BASE="https://github.com/MiChongs/sing-box/releases/download/v$VERSION"
+ARCH="$(uname -m)"
+case "$ARCH" in
+ x86_64) PLATFORM=linux-amd64 ;;
+ aarch64) PLATFORM=linux-arm64 ;;
+ *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+esac
+NAME="sing-box-$VERSION-$PLATFORM"
+TMP="$(mktemp -d /tmp/smartbox-core.XXXXXX)"
+trap 'rm -rf "$TMP"' EXIT
+echo "Downloading signed release metadata and binary for $PLATFORM"
+curl -fLSs --retry 2 "$BASE/SHA256SUMS" -o "$TMP/SHA256SUMS"
+curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
+LINE="$(grep " $NAME.tar.gz$" "$TMP/SHA256SUMS" | head -n 1 || true)"
+[ -n "$LINE" ] || { echo "Checksum not found in upstream SHA256SUMS" >&2; exit 1; }
+EXPECTED="$(printf '%s\n' "$LINE" | awk '{print $1}')"
+ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
+[ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA256 mismatch" >&2; exit 1; }
+tar -xzf "$TMP/$NAME.tar.gz" -C "$TMP"
+EXE="$(find "$TMP" -type f -name "$NAME" | head -n 1)"
+[ -n "$EXE" ] || { echo "Executable missing" >&2; exit 1; }
+chmod 700 "$EXE"
+"$EXE" version | grep -F "$VERSION" >/dev/null || { echo "Unexpected binary version" >&2; exit 1; }
+mkdir -p /usr/bin /etc/sing-box-smart
+if [ -f /usr/bin/sing-box-smart ]; then
+ cp -p /usr/bin/sing-box-smart /etc/sing-box-smart/sing-box-smart.previous
+fi
+cp "$EXE" /usr/bin/sing-box-smart.new
+chmod 755 /usr/bin/sing-box-smart.new
+mv /usr/bin/sing-box-smart.new /usr/bin/sing-box-smart
+echo "Installed sing-box Smart $VERSION"
