@@ -1,0 +1,37 @@
+name: SmartBox adapter validation
+
+on:
+  push:
+    branches: [feature/sing-box-smart-adapter]
+    paths:
+      - 'luci-app-openclash/luasrc/controller/smartbox*.lua'
+      - 'luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua'
+      - 'luci-app-openclash/root/etc/init.d/smartbox'
+      - 'luci-app-openclash/root/usr/libexec/smartbox-generate'
+      - '.github/workflows/smartbox-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua syntax checker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.1
+      - name: Shell syntax
+        run: |
+          sh -n luci-app-openclash/root/etc/init.d/smartbox
+          sh -n luci-app-openclash/root/usr/libexec/smartbox-generate
+      - name: Lua syntax
+        run: |
+          luac -p luci-app-openclash/luasrc/controller/smartbox.lua
+          luac -p luci-app-openclash/luasrc/controller/smartbox_status.lua
+          luac -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+      - name: Assert isolated default
+        run: |
+          grep -q "option enabled '0'" luci-app-openclash/root/etc/config/smartbox
+          grep -q 'listen="127.0.0.1"' luci-app-openclash/root/usr/libexec/smartbox-generate
+          ! grep -E 'iptables -|nft add|uci commit firewall|ip rule add' luci-app-openclash/root/etc/init.d/smartbox
