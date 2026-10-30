@@ -40,7 +40,13 @@
     }
     message.textContent = '<%:数据已更新。权重是相对排名，不是绝对速度。%>';
     names.forEach(function (name) {
+      var info = (data.groups || []).filter(function (g) { return g && g.name === name; })[0];
       put(target, 'h3', name);
+      if (info) {
+        put(target, 'p', '<%:当前选择%>: ' + (info.now || '-') +
+          ' · <%:成员数%>: ' + (info.members || 0) +
+          (info.fixed ? ' · <%:手动固定%>' : ' · <%:智能选择%>'));
+      }
       var rows = Array.isArray(weights[name]) ? weights[name] : [];
       if (!rows.length) {
         put(target, 'p', '<%:尚无节点数据%>');
