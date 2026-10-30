@@ -1,0 +1,20 @@
+#!/bin/sh
+# Read-only service status, no credentials printed.
+set -eu
+echo "SmartBox status"
+if pidof sing-box-smart >/dev/null 2>&1; then
+ echo "Process: running"
+else
+ echo "Process: stopped"
+fi
+if [ -x /usr/bin/sing-box-smart ]; then
+ /usr/bin/sing-box-smart version | head -n 1
+else
+ echo "Core: not installed"
+fi
+if [ -f /etc/sing-box-smart/config.json ]; then
+ echo "Config: present"
+else
+ echo "Config: absent"
+fi
+echo "OpenClash enabled: $(uci -q get openclash.config.enable || echo unknown)"
