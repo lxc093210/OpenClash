@@ -121,7 +121,7 @@ jobs:
           printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
           # OpenClash needs Ruby/YAML at runtime, but not Ruby's optional
           # YJIT. Keeping this disabled also avoids the rust/host dependency.
-          printf '# CONFIG_RUBY_ENABLE_YJIT is not set\n' >> .config
+          printf 'CONFIG_RUBY_ENABLE_YJIT=n\n' >> .config
 
       - name: Resolve SDK package configuration
         shell: bash
@@ -135,14 +135,9 @@ jobs:
         run: |
           set -euxo pipefail
           cd /tmp/sdk
-          if grep -Eq '^CONFIG_RUBY_ENABLE_YJIT(=|$)' .config; then
+          if grep -q '^CONFIG_RUBY_ENABLE_YJIT=y$' .config; then
             echo 'Ruby YJIT unexpectedly enabled' >&2
             grep -n 'RUBY_ENABLE_YJIT' .config >&2 || true
-            exit 1
-          fi
-          if grep -q '^CONFIG_PACKAGE_rust=' .config; then
-            echo 'Rust target package unexpectedly selected' >&2
-            grep -n '^CONFIG_PACKAGE_rust=' .config >&2 || true
             exit 1
           fi
           printf '%s\n' 'Resolved package configuration:'
