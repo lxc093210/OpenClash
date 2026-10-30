@@ -12,6 +12,9 @@ local function port(value, fallback)
   assert(n and n == math.floor(n) and n >= 1 and n <= 65535, "invalid port")
   return n
 end
+assert(cfg.api_secret and #cfg.api_secret >= 24 and
+  cfg.api_secret:match("^[%w_-]+$"),
+  "API secret must contain at least 24 letters/numbers")
 local providers, tags, seen = {}, {}, {}
 uci:foreach("smartbox", "provider", function(p)
   if p.enabled == "1" then
@@ -20,6 +23,9 @@ uci:foreach("smartbox", "provider", function(p)
     assert(url:match("^https://") and not url:find("[%c%s]"), "invalid HTTPS URL")
     local interval = p.update_interval or "12h"
     assert(interval:match("^[1-9]%d*[hm]$"), "invalid refresh interval")
+    local count, unit = interval:match("^(%d+)([hm])$")
+    assert(count and (unit == "h" or tonumber(count) >= 60),
+      "provider update interval must be at least 1 hour")
     seen[tag] = true
     providers[#providers+1] = {type="remote", tag=tag, url=url, update_interval=interval, http_client="fetch"}
     tags[#tags+1] = tag
