@@ -28,8 +28,7 @@ jobs:
         run: |
           mkdir -p /tmp/sdk/package/smartbox
           cp -a luci-app-openclash/. /tmp/sdk/package/smartbox/
-          # Build OpenClash fork as a separate experimental package. Original source untouched.
-          sed -i 's/PKG_VERSION:=0.48.002/PKG_VERSION:=0.48.002/' /tmp/sdk/package/smartbox/Makefile
+          # Build in the SDK workspace; this does not publish or install the result.
       - name: Configure
         run: |
           cd /tmp/sdk
@@ -52,12 +51,23 @@ jobs:
           [ -n "$IPK" ] || exit 1
           mkdir -p /tmp/smartbox-inspect
           cd /tmp/smartbox-inspect
-          ar x "$IPK"
+          # OpenWrt packages may be gzip-tar IPKs rather than ar archives.
+          if ar t "$IPK" >/dev/null 2>&1; then
+            ar x "$IPK"
+          else
+            tar -xf "$IPK"
+          fi
           DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
           [ -n "$DATA" ] || { echo 'Missing data archive'; exit 1; }
           tar -tf "$DATA" > /tmp/smartbox-manifest.txt
-          for file in             etc/config/smartbox             etc/init.d/smartbox             usr/libexec/smartbox-generate             usr/libexec/smartbox-core-install             usr/lib/lua/luci/controller/smartbox.lua             usr/lib/lua/luci/view/openclash/smartbox_status.htm; do
-            grep -q "^./$file$" /tmp/smartbox-manifest.txt || {
+          for file in \
+            etc/config/smartbox \
+            etc/init.d/smartbox \
+            usr/libexec/smartbox-generate \
+            usr/libexec/smartbox-core-install \
+            usr/lib/lua/luci/controller/smartbox.lua \
+            usr/lib/lua/luci/view/openclash/smartbox_status.htm; do
+            grep -Eq "^((\\./)?)$file$" /tmp/smartbox-manifest.txt || {
               echo "Missing expected package file: $file"
               exit 1
             }
