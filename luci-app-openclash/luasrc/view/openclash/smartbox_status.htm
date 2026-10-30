@@ -1,0 +1,61 @@
+<%+header%>
+<h2><%:SmartBox - Node Ranking%></h2>
+<p><%:Read-only view of the sing-box Smart ranking API. This test service is localhost-only and does not control your OpenClash traffic.%></p>
+<div id="smartbox-message"><em><%:Loading...%></em></div>
+<div class="table" id="smartbox-table"></div>
+<script type="text/javascript">
+(function() {
+  var endpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","status_data")%>';
+  var message = document.getElementById('smartbox-message');
+  var table = document.getElementById('smartbox-table');
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function cell(row, value) {
+    var d = document.createElement('div');
+    d.className = 'td';
+    d.textContent = value === undefined || value === null ? '-' : String(value);
+    row.appendChild(d);
+  }
+  function draw(obj) {
+    clear(table);
+    if (obj.error) { message.textContent = obj.error; return; }
+    var weights = obj.weights || {};
+    var groups = Object.keys(weights);
+    if (!groups.length) {
+      message.textContent = '<%:No ranking data yet. Try the proxy and refresh.%>';
+      return;
+    }
+    message.textContent = '<%:Read-only Smart data%>';
+    groups.forEach(function(group) {
+      var title = document.createElement('h3');
+      title.textContent = group;
+      table.appendChild(title);
+      var header = document.createElement('div');
+      header.className = 'tr table-titles';
+      ['#', '<%:Node%>', '<%:Score%>', '<%:Details%>'].forEach(function(x) { cell(header, x); });
+      table.appendChild(header);
+      (Array.isArray(weights[group]) ? weights[group] : []).forEach(function(node, i) {
+        var row = document.createElement('div');
+        row.className = 'tr';
+        cell(row, i + 1);
+        cell(row, node.name || node.node || node.tag || '-');
+        cell(row, node.score !== undefined ? node.score : node.weight);
+        cell(row, JSON.stringify(node).slice(0, 280));
+        table.appendChild(row);
+      });
+    });
+  }
+  function load() {
+    fetch(endpoint, {credentials:'same-origin'}).then(function(r) {
+      if (!r.ok) throw Error('HTTP ' + r.status);
+      return r.json();
+    }).then(draw).catch(function(err) { message.textContent = err.message; });
+  }
+  load();
+  var refresh = document.createElement('button');
+  refresh.className = 'btn cbi-button cbi-button-reload';
+  refresh.textContent = '<%:Refresh ranking%>';
+  refresh.addEventListener('click', load);
+  message.parentNode.insertBefore(refresh, message.nextSibling);
+})();
+</script>
+<%+footer%>
