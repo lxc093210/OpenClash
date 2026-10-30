@@ -1,61 +1,88 @@
 <%+header%>
-<h2><%:SmartBox - Node Ranking%></h2>
-<p><%:Read-only view of the sing-box Smart ranking API. This test service is localhost-only and does not control your OpenClash traffic.%></p>
-<div id="smartbox-message"><em><%:Loading...%></em></div>
-<div class="table" id="smartbox-table"></div>
+<h2><%:SmartBox - Smart 节点质量排名%></h2>
+<p><%:独立测试模式：以下数据来自 sing-box Smart 内核，不会改变 OpenClash 当前线路。排名需要真实连接数据积累。%></p>
+<div id="smartbox-message" role="status"><em><%:正在读取 Smart 排名...%></em></div>
+<div id="smartbox-results"></div>
+<p><button type="button" id="smartbox-refresh" class="btn cbi-button cbi-button-reload"><%:刷新排名%></button></p>
 <script type="text/javascript">
-(function() {
+(function () {
+  'use strict';
   var endpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","status_data")%>';
   var message = document.getElementById('smartbox-message');
-  var table = document.getElementById('smartbox-table');
+  var target = document.getElementById('smartbox-results');
+  var button = document.getElementById('smartbox-refresh');
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
-  function cell(row, value) {
-    var d = document.createElement('div');
-    d.className = 'td';
-    d.textContent = value === undefined || value === null ? '-' : String(value);
-    row.appendChild(d);
+  function put(parent, tag, value, cls) {
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    el.textContent = value === undefined || value === null ? '-' : String(value);
+    parent.appendChild(el);
+    return el;
   }
-  function draw(obj) {
-    clear(table);
-    if (obj.error) { message.textContent = obj.error; return; }
-    var weights = obj.weights || {};
-    var groups = Object.keys(weights);
-    if (!groups.length) {
-      message.textContent = '<%:No ranking data yet. Try the proxy and refresh.%>';
+  function measurement(v, suffix) {
+    return typeof v === 'number' && isFinite(v) && v > 0 ? v.toFixed(1) + suffix : '-';
+  }
+  function speed(bps) {
+    if (typeof bps !== 'number' || !isFinite(bps) || bps <= 0) return '-';
+    return (bps / 1048576).toFixed(2) + ' MiB/s';
+  }
+  function draw(data) {
+    clear(target);
+    if (!data || data.error) {
+      message.textContent = data && data.error || '<%:Smart 数据读取失败%>';
       return;
     }
-    message.textContent = '<%:Read-only Smart data%>';
-    groups.forEach(function(group) {
-      var title = document.createElement('h3');
-      title.textContent = group;
-      table.appendChild(title);
+    var weights = data.weights || {};
+    var names = Object.keys(weights).sort();
+    if (!names.length) {
+      message.textContent = '<%:未找到 Smart 组。请检查内核及订阅配置。%>';
+      return;
+    }
+    message.textContent = '<%:数据已更新。权重是相对排名，不是绝对速度。%>';
+    names.forEach(function (name) {
+      put(target, 'h3', name);
+      var rows = Array.isArray(weights[name]) ? weights[name] : [];
+      if (!rows.length) {
+        put(target, 'p', '<%:尚无节点数据%>');
+        return;
+      }
+      var wrap = document.createElement('div');
+      wrap.className = 'table';
+      target.appendChild(wrap);
       var header = document.createElement('div');
       header.className = 'tr table-titles';
-      ['#', '<%:Node%>', '<%:Score%>', '<%:Details%>'].forEach(function(x) { cell(header, x); });
-      table.appendChild(header);
-      (Array.isArray(weights[group]) ? weights[group] : []).forEach(function(node, i) {
+      wrap.appendChild(header);
+      ['#', '<%:节点%>', '<%:权重%>', '<%:状态%>', '<%:响应%>', '<%:下载%>', '<%:成功/失败%>'].forEach(function (x) {
+        put(header, 'div', x, 'th');
+      });
+      rows.forEach(function (node, i) {
         var row = document.createElement('div');
         row.className = 'tr';
-        cell(row, i + 1);
-        cell(row, node.name || node.node || node.tag || '-');
-        cell(row, node.score !== undefined ? node.score : node.weight);
-        cell(row, JSON.stringify(node).slice(0, 280));
-        table.appendChild(row);
+        wrap.appendChild(row);
+        put(row, 'div', i + 1, 'td');
+        put(row, 'div', node.Name || '-', 'td');
+        put(row, 'div', typeof node.Weight === 'number' ? node.Weight.toFixed(1) : '-', 'td');
+        var status = !node.Alive ? '<%:离线%>' :
+          node.BackedOff ? '<%:退避中%>' :
+          node.Pool ? '<%:候选池%>' : '<%:可用%>';
+        put(row, 'div', status, 'td');
+        put(row, 'div', measurement(node.ResponseMs, ' ms'), 'td');
+        put(row, 'div', speed(node.DownloadBps), 'td');
+        put(row, 'div', (node.Success || 0) + ' / ' + (node.Failure || 0), 'td');
       });
     });
   }
   function load() {
-    fetch(endpoint, {credentials:'same-origin'}).then(function(r) {
-      if (!r.ok) throw Error('HTTP ' + r.status);
-      return r.json();
-    }).then(draw).catch(function(err) { message.textContent = err.message; });
+    button.disabled = true;
+    message.textContent = '<%:正在读取...%>';
+    fetch(endpoint, {credentials: 'same-origin', cache: 'no-store'})
+      .then(function (res) { if (!res.ok) throw Error('HTTP ' + res.status); return res.json(); })
+      .then(draw)
+      .catch(function (e) { message.textContent = e.message; })
+      .then(function () { button.disabled = false; });
   }
+  button.addEventListener('click', load);
   load();
-  var refresh = document.createElement('button');
-  refresh.className = 'btn cbi-button cbi-button-reload';
-  refresh.textContent = '<%:Refresh ranking%>';
-  refresh.addEventListener('click', load);
-  message.parentNode.insertBefore(refresh, message.nextSibling);
 })();
 </script>
 <%+footer%>
