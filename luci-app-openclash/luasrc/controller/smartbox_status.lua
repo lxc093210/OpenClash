@@ -23,15 +23,21 @@ function status_data()
   end
   -- Only call the localhost controller, never user-supplied host/URL.
   local secret = uci:get("smartbox","main","api_secret") or ""
-  local cmd = "curl -fsS --max-time 3 -H " ..
-    sys.shellquote("Authorization: Bearer " .. secret) ..
-    " " .. sys.shellquote("http://127.0.0.1:" .. port .. "/smart/weights") ..
-    " 2>/dev/null"
-  local raw = sys.exec(cmd)
-  local data = json.parse(raw)
-  if type(data) ~= "table" then
-    http.write_json({error="Smart API unavailable; enable the independent test service first"})
+  local function fetch(path)
+    local cmd = "curl -fsS --max-time 3 -H " ..
+      sys.shellquote("Authorization: Bearer " .. secret) ..
+      " " .. sys.shellquote("http://127.0.0.1:" .. port .. path) ..
+      " 2>/dev/null"
+    return json.parse(sys.exec(cmd))
+  end
+  local data = fetch("/smart/weights")
+  if type(data) ~= "table" or type(data.weights) ~= "table" then
+    http.write_json({error="Smart API unavailable; check the local SmartBox service"})
     return
+  end
+  local details = fetch("/smart/groups")
+  if type(details) == "table" and type(details.groups) == "table" then
+    data.groups = details.groups
   end
   http.write_json(data)
 end
