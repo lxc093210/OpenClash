@@ -42,7 +42,12 @@ local function redact_action_response(value, secret)
     value = value:gsub(secret:gsub("([^%w])", "%%%1"), "[redacted]")
   end
   value = value:gsub("https?://[^%s%\"'<>]+", "[redacted URL]")
-  return value:gsub("[Bb]earer%s+[%w_%-%.]+", "Bearer [redacted]")
+  value = value:gsub("[Bb]earer%s+[%w_%-%.]+", "Bearer [redacted]")
+  value = value:gsub('("[^"\r\n]*[Ss]ecret[^"\r\n]*"%s*:%s*")[^"]*"', '%1[redacted]"')
+  value = value:gsub('("[^"\r\n]*[Tt]oken[^"\r\n]*"%s*:%s*")[^"]*"', '%1[redacted]"')
+  value = value:gsub('("[^"\r\n]*[Pp]assword[^"\r\n]*"%s*:%s*")[^"]*"', '%1[redacted]"')
+  value = value:gsub('("[^"\r\n]*[Aa]uthorization[^"\r\n]*"%s*:%s*")[^"]*"', '%1[redacted]"')
+  return value
 end
 
 function action()
