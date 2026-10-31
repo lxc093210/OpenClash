@@ -22,4 +22,8 @@ assert(#data.logs == 1)
 assert(not data.logs[1]:find("00000000000000000000000000000000", 1, true))
 assert(not data.logs[1]:find("example.invalid", 1, true))
 assert(not data.logs[1]:find("secret123", 1, true))
+local node = data.weights.auto[1]
+assert(node and node.Token == "[redacted]")
+assert(node.URL == "[redacted URL]")
+assert(node.Auth == "Bearer [redacted]")
 assert(not real_open(header, "r"), "temporary API header was not removed")

@@ -93,6 +93,25 @@ function status_data()
   if type(details) == "table" and type(details.groups) == "table" then
     data.groups = details.groups
   end
+
+  -- Smart node metadata can contain provider URLs or authorization material.
+  -- Keep the authenticated LuCI view useful while ensuring the response cannot
+  -- accidentally echo credentials returned by a core or a custom provider.
+  local function redact(value)
+    if type(value) == "table" then
+      for key, item in pairs(value) do
+        value[key] = redact(item)
+      end
+      return value
+    end
+    if type(value) ~= "string" then return value end
+    if #secret >= 24 then
+      value = value:gsub(secret:gsub("([^%w])", "%%%1"), "[redacted]")
+    end
+    value = value:gsub("https?://[^%s%\"'<>]+", "[redacted URL]")
+    return value:gsub("[Bb]earer%s+[%w_%-%.]+", "Bearer [redacted]")
+  end
+  data = redact(data)
   os.remove(header_path)
   data.runtime = state.runtime
   data.logs = state.logs

@@ -8,7 +8,7 @@ function M.exec(command)
   assert(command:find("curl -fsS", 1, true))
   assert(not command:find(secret, 1, true), "API secret exposed in process arguments")
   if command:find("/smart/weights", 1, true) then
-    return '{"weights":{"auto":[]}}'
+    return '{"weights":{"auto":[{"Name":"node-secret","URL":"https://example.invalid/secret","Auth":"Bearer secret123","Token":"00000000000000000000000000000000"}]}}'
   end
   if command:find("/smart/groups", 1, true) then
     return '{"groups":[{"name":"auto","now":"node1"}]}'
