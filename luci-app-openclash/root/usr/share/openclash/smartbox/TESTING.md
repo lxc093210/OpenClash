@@ -47,8 +47,9 @@ command's line number as an Actions annotation and uses SSH streaming instead
 of SCP for control traffic; the VM downloads the IPK from a temporary
 runner-local HTTP server over QEMU user networking. Feed, LuCI dependency,
 and SmartBox IPK installation errors are emitted as Actions annotations.
-The disposable VM uses `opkg --force-overwrite` for LuCI because the generic
-image ships `dnsmasq` while the LuCI dependency selects `dnsmasq-full`.
+The disposable VM replaces the generic image's `dnsmasq` package because the
+LuCI dependency selects `dnsmasq-full`; the
+smoke setup removes that disposable base package before installing LuCI.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Reusable workflow calls download the artifact from the caller run; direct
