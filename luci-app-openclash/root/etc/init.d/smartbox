@@ -29,6 +29,6 @@ start_service() {
   procd_set_param respawn 3600 5 5
   procd_set_param stdout 1
   procd_set_param stderr 1
-  procd_set_param file /etc/sing-box-smart/config.json "$binary"
+  procd_set_param file /etc/sing-box-smart/config.json
   procd_close_instance
 }
