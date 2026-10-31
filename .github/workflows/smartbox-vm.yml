@@ -63,15 +63,14 @@ jobs:
           # does not depend on privileged loop partition node creation.
           root_offset=$((33792 * 512))
           sudo mount -o loop,offset="$root_offset" /tmp/openwrt.img /mnt/smartbox-openwrt
-          if ! sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
-            /mnt/smartbox-openwrt/etc/config/network 2>/tmp/network-edit.err; then
-            error="$(tr '\n' ' ' </tmp/network-edit.err)"
-            listing="$(sudo ls -la /mnt/smartbox-openwrt/etc/config 2>&1 | tr '\n' ' ')"
-            echo "::error title=OpenWrt network config edit failed::$error $listing"
-            exit 1
+          if [ -f /mnt/smartbox-openwrt/etc/config/network ]; then
+            sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
+              /mnt/smartbox-openwrt/etc/config/network
+            grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
+              grep -F "option proto 'dhcp'"
+          else
+            echo "No preseeded network UCI file; using the image defaults"
           fi
-          grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
-            grep -F "option proto 'dhcp'"
           ssh-keygen -q -t ed25519 -N '' -f /tmp/smartbox-vm-key
           sudo install -d -m 0700 /mnt/smartbox-openwrt/etc/dropbear
           sudo install -m 0600 /tmp/smartbox-vm-key.pub \
