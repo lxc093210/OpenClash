@@ -50,17 +50,12 @@ jobs:
             "/tmp/$image" | sha256sum -c -
           gzip -dc "/tmp/$image" > /tmp/openwrt.img
           qemu-img resize /tmp/openwrt.img 1G
-          sudo parted -s /tmp/openwrt.img resizepart 2 100%
-          loop="$(sudo losetup --find --partscan --show /tmp/openwrt.img)"
-          fsck_rc=0
-          sudo e2fsck -f -y "${loop}p2" || fsck_rc=$?
-          case "$fsck_rc" in
-            0|1|2) ;;
-            *) exit "$fsck_rc" ;;
-          esac
-          sudo resize2fs "${loop}p2"
           sudo mkdir -p /mnt/smartbox-openwrt
-          sudo mount "${loop}p2" /mnt/smartbox-openwrt
+          # The verified 24.10.3 combined image has its ext4 rootfs at sector
+          # 33792. Mount the existing partition directly so this smoke test
+          # does not depend on privileged loop partition node creation.
+          root_offset=$((33792 * 512))
+          sudo mount -o loop,offset="$root_offset" /tmp/openwrt.img /mnt/smartbox-openwrt
           sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
             /mnt/smartbox-openwrt/etc/config/network
           grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
@@ -70,7 +65,6 @@ jobs:
           sudo install -m 0600 /tmp/smartbox-vm-key.pub \
             /mnt/smartbox-openwrt/etc/dropbear/authorized_keys
           sudo umount /mnt/smartbox-openwrt
-          sudo losetup -d "$loop"
 
       - name: Boot VM and install package
         run: |
