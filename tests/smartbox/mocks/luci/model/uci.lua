@@ -15,7 +15,7 @@ function M.cursor()
       local url = os.getenv("MOCK_PROVIDER_URL") or "https://example.test/subscribe?token=dummy"
       local interval = os.getenv("MOCK_INTERVAL") or "12h"
       local tag = os.getenv("MOCK_PROVIDER_NAME") or "airport_test"
-      callback({enabled="1", name=tag, url=url, update_interval=interval})
+      callback({enabled="1", name=tag, url=url, user_agent="clash", update_interval=interval})
       if os.getenv("MOCK_DUPLICATE") == "1" then
         callback({enabled="1", name=tag, url=url, update_interval=interval})
       end

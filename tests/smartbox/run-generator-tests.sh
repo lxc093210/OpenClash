@@ -26,6 +26,7 @@ assert data['inbounds'][0]['listen']=='127.0.0.1'
 assert data['inbounds'][0]['listen_port']==2088
 assert data['providers'][0]['type']=='remote'
 assert data['providers'][0]['tag']=='airport_test'
+assert data['providers'][0]['user_agent']=='clash'
 assert data['outbounds'][0]['type']=='smart'
 assert data['outbounds'][0]['providers']==['airport_test']
 assert data['outbounds'][0]['use_lightgbm'] is True

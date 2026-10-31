@@ -60,6 +60,15 @@ function url.validate(self, value, section)
  if value and value:match("^https://[^%c%s]+$") then return value end
  return nil, translate("An HTTPS URL is required")
 end
+local user_agent = p:option(Value, "user_agent", translate("Subscription User-Agent"))
+user_agent.default = "clash"
+user_agent.rmempty = true
+user_agent.description = translate("Optional header used by providers that require a Clash-compatible client identifier")
+function user_agent.validate(self, value)
+ if value == nil or value == "" then return value end
+ if #value <= 200 and not value:find("[%c]") then return value end
+ return nil, translate("Use at most 200 characters without control characters")
+end
 local interval = p:option(Value, "update_interval", translate("Refresh interval"))
 interval.default = "12h"
 interval.rmempty = false

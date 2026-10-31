@@ -9,4 +9,5 @@ config provider
 	option name 'airport1'
 	option enabled '0'
 	option url ''
+	option user_agent 'clash'
 	option update_interval '12h'

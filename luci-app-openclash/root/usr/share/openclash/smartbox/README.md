@@ -17,3 +17,6 @@ The ranking page can request an immediate recompute, clear a manual pin, or
 pin one reported node. These actions are sent only to the localhost Smart API,
 use the root-only API header file, and reject group names and node values that
 cannot be safely represented in the request.
+
+Each HTTPS subscription can optionally provide a bounded `User-Agent` value
+(default `clash`) for providers that require a Clash-compatible client header.

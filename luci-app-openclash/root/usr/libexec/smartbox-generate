@@ -28,13 +28,17 @@ uci:foreach("smartbox", "provider", function(p)
     local tag, url = p.name or "", p.url or ""
     assert(tag:match("^[%w_-]+$") and not seen[tag], "invalid or duplicate provider name")
     assert(url:match("^https://") and not url:find("[%c%s]"), "invalid HTTPS URL")
+    local user_agent = p.user_agent or ""
+    assert(#user_agent <= 200 and not user_agent:find("[%c]"), "invalid provider User-Agent")
     local interval = p.update_interval or "12h"
     assert(interval:match("^[1-9]%d*[hm]$"), "invalid refresh interval")
     local count, unit = interval:match("^(%d+)([hm])$")
     assert(count and (unit == "h" or tonumber(count) >= 60),
       "provider update interval must be at least 1 hour")
     seen[tag] = true
-    providers[#providers+1] = {type="remote", tag=tag, url=url, update_interval=interval, http_client="fetch"}
+    local provider = {type="remote", tag=tag, url=url, update_interval=interval, http_client="fetch"}
+    if user_agent ~= "" then provider.user_agent = user_agent end
+    providers[#providers+1] = provider
     tags[#tags+1] = tag
   end
 end)
