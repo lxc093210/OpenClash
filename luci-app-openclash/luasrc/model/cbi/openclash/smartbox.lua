@@ -12,8 +12,8 @@ enabled.default = "0"
 local binary = s:option(Value, "binary", translate("Smart binary path"))
 binary.default = "/usr/bin/sing-box-smart"
 function binary.validate(self, value)
- if value == "/usr/bin/sing-box-smart" or value == "/usr/local/bin/sing-box-smart" then return value end
- return nil, translate("Use /usr/bin/sing-box-smart or /usr/local/bin/sing-box-smart")
+ if value and value:match("^/[A-Za-z0-9_./-]+$") then return value end
+ return nil, translate("Use an absolute executable path without spaces or shell characters")
 end
 local port = s:option(Value, "listen_port", translate("Local mixed proxy port"))
 port.datatype = "port"
@@ -75,7 +75,7 @@ function core.cfgvalue(self, section)
   local uci = require("luci.model.uci").cursor()
   local util = require("luci.util")
   local bin = uci:get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
-  if bin ~= "/usr/bin/sing-box-smart" and bin ~= "/usr/local/bin/sing-box-smart" then return translate("Invalid core path") end
+  if not bin:match("^/[A-Za-z0-9_./-]+$") then return translate("Invalid core path") end
   local line = require("luci.sys").exec(util.shellquote(bin) .. " version 2>/dev/null | head -n 1") or ""
   local version = line:gsub("%s+$", "")
   return version ~= "" and version or translate("Not installed")
@@ -97,7 +97,7 @@ end
 local status = controls:option(DummyValue, "_runtime", translate("Runtime status"))
 function status.cfgvalue(self, section)
   local bin = require("luci.model.uci").cursor():get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
-  local name = (bin == "/usr/bin/sing-box-smart" or bin == "/usr/local/bin/sing-box-smart") and bin:match("/([^/]+)$") or "sing-box-smart"
+  local name = bin:match("^/[A-Za-z0-9_./-]+$") and bin:match("/([^/]+)$") or "sing-box-smart"
   if os.execute("pidof " .. require("luci.util").shellquote(name) .. " >/dev/null 2>&1") == 0 then
     return translate("Running (local test)")
   end

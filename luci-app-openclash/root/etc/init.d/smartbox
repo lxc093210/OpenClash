@@ -14,7 +14,7 @@ start_service() {
   # and rollback mechanism has been implemented and tested.
   binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
   case "$binary" in
-    /usr/bin/sing-box-smart|/usr/local/bin/sing-box-smart) ;;
+    /*) ;;
     *) logger -t smartbox "Invalid Smart core path"; return 1 ;;
   esac
   [ -x "$binary" ] || { logger -t smartbox "Smart core unavailable"; return 1; }
