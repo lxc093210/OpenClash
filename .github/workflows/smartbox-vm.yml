@@ -131,6 +131,7 @@ jobs:
           ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install /tmp/smartbox.ipk >/tmp/opkg-smartbox.log 2>&1 || { echo "::error title=SmartBox IPK install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-smartbox.log)"; exit 1; }'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
           set -eu
+          trap 'rc=$?; echo "::error title=Guest SmartBox smoke failed::line ${LINENO}, exit ${rc}"; exit "$rc"' ERR
           opkg status luci-app-openclash | grep -E '^Status: install .* installed$'
           test -x /etc/init.d/smartbox
           test -x /usr/libexec/smartbox-generate

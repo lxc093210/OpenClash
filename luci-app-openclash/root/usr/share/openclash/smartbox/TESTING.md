@@ -47,6 +47,7 @@ command's line number as an Actions annotation and uses SSH streaming instead
 of SCP for control traffic; the VM downloads the IPK from a temporary
 runner-local HTTP server over QEMU user networking. Feed, LuCI dependency,
 and SmartBox IPK installation errors are emitted as Actions annotations.
+Guest runtime assertions have their own failure line annotation.
 The disposable VM replaces the generic image's `dnsmasq` package because the
 LuCI dependency selects `dnsmasq-full`; the
 smoke setup removes that disposable base package before installing LuCI.
