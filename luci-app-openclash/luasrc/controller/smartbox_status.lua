@@ -36,6 +36,15 @@ local function api_header(secret)
   return path
 end
 
+local function redact_action_response(value, secret)
+  value = value or ""
+  if #secret >= 24 then
+    value = value:gsub(secret:gsub("([^%w])", "%%%1"), "[redacted]")
+  end
+  value = value:gsub("https?://[^%s%\"'<>]+", "[redacted URL]")
+  return value:gsub("[Bb]earer%s+[%w_%-%.]+", "Bearer [redacted]")
+end
+
 function action()
   http.prepare_content("application/json")
   local secret = uci:get("smartbox", "main", "api_secret") or ""
@@ -94,7 +103,8 @@ function action()
   os.remove(header_path)
   os.remove(response_path)
   if code < 200 or code >= 300 then
-    http.write_json({error = "Smart API action failed", status = code, response = body:sub(1, 1000)})
+    http.write_json({error = "Smart API action failed", status = code,
+      response = redact_action_response(body:sub(1, 1000), secret)})
     return
   end
   http.write_json({ok = true, status = code})

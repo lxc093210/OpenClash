@@ -125,4 +125,5 @@ routes, so stopping it should restore the pretest network state immediately.
   previous binary and checking its version before starting SmartBox.
 - The LuCI ranking action endpoint is covered by the Lua response-redaction
   test and is limited to recompute, clear-selection, pin, and unpin requests
-  against the localhost controller.
+  against the localhost controller. Error response bodies are redacted before
+  they are returned to the browser.

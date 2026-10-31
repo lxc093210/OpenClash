@@ -32,3 +32,9 @@ local http = require("luci.http")
 http.form = {action = "clear", group = "auto"}
 luci.controller.smartbox_status.action()
 assert(http.last and http.last.ok and http.last.status == 204)
+http.form = {action = "recompute", group = "auto"}
+luci.controller.smartbox_status.action()
+assert(http.last and http.last.error and http.last.response)
+assert(not http.last.response:find("00000000000000000000000000000000", 1, true))
+assert(not http.last.response:find("example.invalid", 1, true))
+assert(not http.last.response:find("secret123", 1, true))
