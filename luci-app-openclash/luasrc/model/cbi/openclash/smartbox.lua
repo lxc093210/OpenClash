@@ -83,6 +83,11 @@ end
 local install = controls:option(Button, "_install_core", translate("Install pinned Smart core"))
 install.inputstyle = "apply"
 function install.write(self, section)
+  local bin = require("luci.model.uci").cursor():get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
+  if bin ~= "/usr/bin/sing-box-smart" and bin ~= "/usr/local/bin/sing-box-smart" then
+    self.description = translate("Pinned installer supports /usr/bin/sing-box-smart or /usr/local/bin/sing-box-smart only")
+    return
+  end
   local rc = os.execute("/usr/libexec/smartbox-core-install >/dev/null 2>&1")
   self.description = rc == 0 and translate("Core installed") or
     translate("Installation failed; stop SmartBox and check system log")
@@ -90,6 +95,11 @@ end
 local rollback = controls:option(Button, "_rollback_core", translate("Rollback Smart core"))
 rollback.inputstyle = "reset"
 function rollback.write(self, section)
+  local bin = require("luci.model.uci").cursor():get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
+  if bin ~= "/usr/bin/sing-box-smart" and bin ~= "/usr/local/bin/sing-box-smart" then
+    self.description = translate("Rollback supports /usr/bin/sing-box-smart or /usr/local/bin/sing-box-smart only")
+    return
+  end
   local rc = os.execute("/usr/libexec/smartbox-core-rollback >/dev/null 2>&1")
   self.description = rc == 0 and translate("Previous core restored") or
     translate("Rollback failed; stop SmartBox and check system log")
