@@ -45,7 +45,8 @@ device creation.
 If preparation or installation fails, the workflow publishes the failing
 command's line number as an Actions annotation and uses SSH streaming instead
 of SCP for control traffic; the VM downloads the IPK from a temporary
-runner-local HTTP server over QEMU user networking.
+runner-local HTTP server over QEMU user networking. Feed, LuCI dependency,
+and SmartBox IPK installation errors are emitted as Actions annotations.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Reusable workflow calls download the artifact from the caller run; direct
