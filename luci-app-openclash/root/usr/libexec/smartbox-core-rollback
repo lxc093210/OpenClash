@@ -2,7 +2,12 @@
 set -eu
 PREV=/etc/sing-box-smart/sing-box-smart.previous
 [ -s "$PREV" ] || { echo "No previous core" >&2; exit 1; }
-if pidof sing-box-smart >/dev/null 2>&1; then
+binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
+case "$binary" in
+ /*) ;;
+ *) binary=/usr/bin/sing-box-smart ;;
+esac
+if pidof "${binary##*/}" >/dev/null 2>&1 || pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before rollback" >&2
  exit 1
 fi

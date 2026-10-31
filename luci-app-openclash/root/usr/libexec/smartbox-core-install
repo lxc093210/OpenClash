@@ -2,7 +2,12 @@
 # Install a pinned sing-box Smart release with SHA256 verification.
 set -eu
 umask 077
-if pidof sing-box-smart >/dev/null 2>&1; then
+binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
+case "$binary" in
+ /*) ;;
+ *) binary=/usr/bin/sing-box-smart ;;
+esac
+if pidof "${binary##*/}" >/dev/null 2>&1 || pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before replacing the core" >&2
  exit 1
 fi
