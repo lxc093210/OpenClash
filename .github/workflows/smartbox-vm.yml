@@ -130,7 +130,7 @@ jobs:
           ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install luci >/tmp/opkg-luci.log 2>&1 || { echo "::error title=OpenWrt LuCI install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-luci.log)"; exit 1; }'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install /tmp/smartbox.ipk >/tmp/opkg-smartbox.log 2>&1 || { echo "::error title=SmartBox IPK install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-smartbox.log)"; exit 1; }'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
-          set -eu
+          set -eux
           trap 'rc=$?; echo "::error title=Guest SmartBox smoke failed::line ${LINENO}, exit ${rc}"; exit "$rc"' ERR
           opkg status luci-app-openclash | grep -E '^Status: install .* installed$'
           test -x /etc/init.d/smartbox
@@ -146,7 +146,12 @@ jobs:
           uci show dhcp > /tmp/dhcp.before
           uci show firewall > /tmp/firewall.before
           ip route show > /tmp/routes.before
-          /usr/libexec/smartbox-core-install
+          if ! /usr/libexec/smartbox-core-install >/tmp/smartbox-core-install.log 2>&1; then
+            core_error="$(tail -n 12 /tmp/smartbox-core-install.log | tr '\n' ' ')"
+            echo "::error title=Smart core installation failed::$core_error"
+            cat /tmp/smartbox-core-install.log
+            exit 1
+          fi
           /usr/libexec/smartbox-secret-init
           if ! uci set smartbox.smoke=provider 2>/tmp/uci-set.err; then
             echo "::error title=SmartBox provider section write failed::$(tr '\n' ' ' </tmp/uci-set.err)"; exit 1

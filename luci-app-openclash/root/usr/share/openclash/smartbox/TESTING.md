@@ -108,3 +108,6 @@ routes, so stopping it should restore the pretest network state immediately.
 - No automatic Mihomo/Smart switch, global interception, Fake-IP or device
   policy handover exists yet.
 - The Smart core installer currently targets x86_64 and aarch64 releases only.
+- VM failures in the pinned Smart core installation step include the final
+  installer lines in a sanitized CI annotation, covering download, checksum,
+  and archive extraction errors without exposing subscription or API secrets.
