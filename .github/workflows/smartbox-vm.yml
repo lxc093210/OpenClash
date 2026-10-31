@@ -2,6 +2,12 @@ name: SmartBox isolated OpenWrt VM smoke
 
 on:
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Successful SmartBox IPK workflow run containing the artifact'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,10 +20,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - name: Download artifact from caller workflow
+        if: ${{ github.event_name == 'workflow_call' }}
+        uses: actions/download-artifact@v4
         with:
           name: smartbox-openwrt-x86-64-ipk-experimental
           path: /tmp/smartbox-artifact
+
+      - name: Download artifact from a verified build run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: smartbox-openwrt-x86-64-ipk-experimental
+          path: /tmp/smartbox-artifact
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Prepare isolated OpenWrt 24.10.3 VM
         run: |
