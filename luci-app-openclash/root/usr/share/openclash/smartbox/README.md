@@ -12,3 +12,8 @@ Smart API ranking, package checks and isolated VM smoke-test workflow. Global
 Mihomo/Smart handover remains deliberately disabled until it has an atomic
 firewall/DNS transition and recovery test. Do not install on a production
 router.
+
+The ranking page can request an immediate recompute, clear a manual pin, or
+pin one reported node. These actions are sent only to the localhost Smart API,
+use the root-only API header file, and reject group names and node values that
+cannot be safely represented in the request.

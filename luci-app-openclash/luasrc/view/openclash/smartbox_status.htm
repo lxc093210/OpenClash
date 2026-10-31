@@ -11,6 +11,7 @@
 (function () {
   'use strict';
   var endpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","status_data")%>';
+  var actionEndpoint = '<%=luci.dispatcher.build_url("admin","services","smartbox","action")%>';
   var message = document.getElementById('smartbox-message');
   var runtime = document.getElementById('smartbox-runtime');
   var logs = document.getElementById('smartbox-logs');
@@ -42,6 +43,34 @@
     var value = field(obj, names);
     if (typeof value === 'string' && value.trim() !== '') value = Number(value);
     return typeof value === 'number' && isFinite(value) ? value : undefined;
+  }
+  function actionButton(label, action, group, node) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cbi-button cbi-button-apply';
+    button.textContent = label;
+    button.addEventListener('click', function () {
+      button.disabled = true;
+      var body = 'action=' + encodeURIComponent(action) + '&group=' + encodeURIComponent(group);
+      if (node !== undefined) body += '&node=' + encodeURIComponent(node);
+      fetch(actionEndpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: body
+      }).then(function (res) {
+        if (!res.ok) throw Error('HTTP ' + res.status);
+        return res.json();
+      }).then(function (result) {
+        if (!result || !result.ok) throw Error(result && result.error || '<%:Smart 操作失败%>');
+        load();
+      }).catch(function (e) {
+        message.textContent = e.message;
+        button.disabled = false;
+      });
+    });
+    return button;
   }
   function groupInfo(groups, name) {
     if (Array.isArray(groups)) {
@@ -80,6 +109,11 @@
         put(target, 'p', '<%:当前选择%>: ' + current +
           ' · <%:成员数%>: ' + members +
           (fixed ? ' · <%:手动固定%>' : ' · <%:智能选择%>'));
+        var groupActions = document.createElement('p');
+        groupActions.appendChild(actionButton('<%:立即重算%>', 'recompute', name));
+        groupActions.appendChild(document.createTextNode(' '));
+        groupActions.appendChild(actionButton('<%:取消固定%>', 'clear', name));
+        target.appendChild(groupActions);
       }
       var rows = Array.isArray(weights[name]) ? weights[name] : [];
       if (!rows.length) {
@@ -92,7 +126,7 @@
       var header = document.createElement('div');
       header.className = 'tr table-titles';
       wrap.appendChild(header);
-      ['#', '<%:节点%>', '<%:权重/质量%>', '<%:状态%>', '<%:探测/响应%>', '<%:下载%>', '<%:成功/失败%>', '<%:稳定性%>'].forEach(function (x) {
+      ['#', '<%:节点%>', '<%:权重/质量%>', '<%:状态%>', '<%:探测/响应%>', '<%:下载%>', '<%:成功/失败%>', '<%:稳定性%>', '<%:操作%>'].forEach(function (x) {
         put(header, 'div', x, 'th');
       });
       rows.forEach(function (node, i) {
@@ -123,6 +157,11 @@
         var loss = number(node, ['Loss', 'loss']);
         put(row, 'div', reliability !== undefined ? reliability.toFixed(3) +
           (loss !== undefined ? ' / ' + (loss * 100).toFixed(2) + '%' : '') : '-', 'td');
+        var actionCell = document.createElement('div');
+        actionCell.className = 'td';
+        var nodeName = field(node, ['Name', 'name']);
+        if (nodeName) actionCell.appendChild(actionButton('<%:固定%>', 'select', name, nodeName));
+        row.appendChild(actionCell);
       });
     });
   }

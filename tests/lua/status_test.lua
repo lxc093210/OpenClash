@@ -2,13 +2,13 @@ local target = assert(arg[1])
 local header = "/tmp/smartbox-api-header-test"
 local real_open, real_remove = io.open, os.remove
 io.open = function(path, mode)
-  if path:find("/etc/sing-box-smart/.api-header-", 1, true) == 1 then
+  if path:find("/etc/sing-box-smart/.api-", 1, true) == 1 then
     return real_open(header, mode)
   end
   return real_open(path, mode)
 end
 os.remove = function(path)
-  if path:find("/etc/sing-box-smart/.api-header-", 1, true) == 1 then
+  if path:find("/etc/sing-box-smart/.api-", 1, true) == 1 then
     return real_remove(header)
   end
   return real_remove(path)
@@ -28,3 +28,7 @@ assert(node.URL == "[redacted URL]")
 assert(node.Auth == "Bearer [redacted]")
 assert(node.Password == "[redacted]")
 assert(not real_open(header, "r"), "temporary API header was not removed")
+local http = require("luci.http")
+http.form = {action = "clear", group = "auto"}
+luci.controller.smartbox_status.action()
+assert(http.last and http.last.ok and http.last.status == 204)

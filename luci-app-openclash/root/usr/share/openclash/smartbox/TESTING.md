@@ -123,3 +123,6 @@ routes, so stopping it should restore the pretest network state immediately.
   alongside the service and localhost API checks.
 - It also exercises the pinned core rollback helper by restoring a verified
   previous binary and checking its version before starting SmartBox.
+- The LuCI ranking action endpoint is covered by the Lua response-redaction
+  test and is limited to recompute, clear-selection, pin, and unpin requests
+  against the localhost controller.

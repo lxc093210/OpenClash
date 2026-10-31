@@ -15,6 +15,89 @@ function index()
   local api = entry({"admin","services","smartbox","status_data"}, call("status_data"))
   api.leaf = true
   api.acl_depends = {"luci-app-openclash"}
+  local action = entry({"admin","services","smartbox","action"}, call("action"))
+  action.leaf = true
+  action.acl_depends = {"luci-app-openclash"}
+end
+
+local function api_header(secret)
+  local dir = "/etc/sing-box-smart"
+  if not fs.chmod(dir, 448) then return nil, "SmartBox configuration directory is unavailable" end
+  local suffix = tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
+  local path = dir .. "/.api-action-" .. nixio.getpid() .. "-" .. suffix
+  local file = io.open(path, "w")
+  if not file then return nil, "Smart API header could not be prepared" end
+  file:write("Authorization: Bearer ", secret, "\n")
+  file:close()
+  if not fs.chmod(path, 384) then
+    os.remove(path)
+    return nil, "Smart API header permissions could not be set"
+  end
+  return path
+end
+
+function action()
+  http.prepare_content("application/json")
+  local secret = uci:get("smartbox", "main", "api_secret") or ""
+  if not secret:match("^[%w_-]+$") or #secret < 24 then
+    http.write_json({error = "SmartBox API secret is not configured"})
+    return
+  end
+  local port = tonumber(uci:get("smartbox", "main", "controller_port") or "19090")
+  local action_name = http.formvalue("action") or ""
+  local group = http.formvalue("group") or ""
+  local node = http.formvalue("node") or ""
+  if not port or port ~= math.floor(port) or port < 1 or port > 65535 then
+    http.write_json({error = "Invalid controller port"})
+    return
+  end
+  if not group:match("^[%w_-]+$") or #group > 80 then
+    http.write_json({error = "Invalid Smart group"})
+    return
+  end
+  local method, path, payload
+  if action_name == "recompute" then
+    method, path = "POST", "/smart/groups/" .. group .. "/recompute"
+  elseif action_name == "clear" then
+    method, path = "POST", "/smart/groups/" .. group .. "/clear-selection"
+  elseif action_name == "select" then
+    if node == "" or #node > 200 or node:find("[%c]", 1) then
+      http.write_json({error = "Invalid Smart node"})
+      return
+    end
+    method, path = "PUT", "/proxies/" .. group
+    payload = json.stringify({name = node})
+  elseif action_name == "unselect" then
+    method, path = "DELETE", "/proxies/" .. group
+  else
+    http.write_json({error = "Unsupported Smart action"})
+    return
+  end
+  local header_path, header_error = api_header(secret)
+  if not header_path then
+    http.write_json({error = header_error})
+    return
+  end
+  -- Keep the response in the root-only SmartBox directory. A predictable
+  -- world-writable /tmp path would allow a symlink attack against uhttpd.
+  local response_path = "/etc/sing-box-smart/.api-response-" .. nixio.getpid() ..
+    "-" .. tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
+  local command = "curl -sS --max-time 5 --max-filesize 1048576 -o " ..
+    util.shellquote(response_path) .. " -w '%{http_code}' -X " .. method ..
+    " -H " .. util.shellquote("@" .. header_path)
+  if payload then
+    command = command .. " -H 'Content-Type: application/json' --data " .. util.shellquote(payload)
+  end
+  command = command .. " " .. util.shellquote("http://127.0.0.1:" .. port .. path) .. " 2>/dev/null"
+  local code = tonumber(sys.exec(command) or "") or 0
+  local body = fs.readfile(response_path) or ""
+  os.remove(header_path)
+  os.remove(response_path)
+  if code < 200 or code >= 300 then
+    http.write_json({error = "Smart API action failed", status = code, response = body:sub(1, 1000)})
+    return
+  end
+  http.write_json({ok = true, status = code})
 end
 
 function status_data()

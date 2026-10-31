@@ -1,6 +1,7 @@
 local secret = "00000000000000000000000000000000"
 local M = {}
 function M.exec(command)
+  if command:find("-w '%{http_code}'", 1, true) then return "204" end
   if command:find("smartbox-status", 1, true) then return "Process: running\n" end
   if command:find("logread", 1, true) then
     return "smartbox: " .. secret .. " https://example.invalid/private?token=abc Bearer secret123\n"
