@@ -48,6 +48,8 @@ of SCP for control traffic; the VM downloads the IPK from a temporary
 runner-local HTTP server over QEMU user networking. Feed, LuCI dependency,
 and SmartBox IPK installation errors are emitted as Actions annotations.
 Guest runtime assertions have their own failure line annotation.
+The package build also sets `/etc/config/smartbox` to `0600` before creating
+the IPK, so secrets are protected even if a package manager skips postinst.
 The disposable VM replaces the generic image's `dnsmasq` package because the
 LuCI dependency selects `dnsmasq-full`; the
 smoke setup removes that disposable base package before installing LuCI.
