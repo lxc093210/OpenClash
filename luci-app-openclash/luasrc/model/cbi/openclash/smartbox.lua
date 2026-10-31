@@ -96,7 +96,9 @@ function rollback.write(self, section)
 end
 local status = controls:option(DummyValue, "_runtime", translate("Runtime status"))
 function status.cfgvalue(self, section)
-  if os.execute("pidof sing-box-smart >/dev/null 2>&1") == 0 then
+  local bin = require("luci.model.uci").cursor():get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
+  local name = bin:match("/([^/]+)$") or "sing-box-smart"
+  if os.execute("pidof " .. require("luci.util").shellquote(name) .. " >/dev/null 2>&1") == 0 then
     return translate("Running (local test)")
   end
   return translate("Stopped")
