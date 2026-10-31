@@ -3,6 +3,8 @@ local http = require "luci.http"
 local json = require "luci.jsonc"
 local sys = require "luci.sys"
 local util = require "luci.util"
+local nixio = require "nixio"
+local fs = require "nixio.fs"
 local uci = require("luci.model.uci").cursor()
 
 function index()
@@ -51,16 +53,38 @@ function status_data()
     http.write_json(state)
     return
   end
+  local dir = "/etc/sing-box-smart"
+  if not fs.chmod(dir, 448) then
+    state.error = "SmartBox configuration directory is unavailable"
+    http.write_json(state)
+    return
+  end
+  local header_path = dir .. "/.api-header-" .. nixio.getpid()
+  local header = io.open(header_path, "w")
+  if not header then
+    state.error = "SmartBox API header could not be prepared"
+    http.write_json(state)
+    return
+  end
+  header:write("Authorization: Bearer ", secret, "\n")
+  header:close()
+  if not fs.chmod(header_path, 384) then
+    os.remove(header_path)
+    state.error = "SmartBox API header permissions could not be set"
+    http.write_json(state)
+    return
+  end
   -- Only call the localhost controller, never a user-supplied host/URL.
   local function fetch(path)
     local cmd = "curl -fsS --max-time 3 -H " ..
-      util.shellquote("Authorization: Bearer " .. secret) ..
+      util.shellquote("@" .. header_path) ..
       " " .. util.shellquote("http://127.0.0.1:" .. port .. path) ..
       " 2>/dev/null"
     return json.parse(sys.exec(cmd))
   end
   local data = fetch("/smart/weights")
   if type(data) ~= "table" or type(data.weights) ~= "table" then
+    os.remove(header_path)
     state.error = "Smart API unavailable; check the local SmartBox service"
     http.write_json(state)
     return
@@ -69,6 +93,7 @@ function status_data()
   if type(details) == "table" and type(details.groups) == "table" then
     data.groups = details.groups
   end
+  os.remove(header_path)
   data.runtime = state.runtime
   data.logs = state.logs
   http.write_json(data)

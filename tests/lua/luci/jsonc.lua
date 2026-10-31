@@ -1,1 +1,2 @@
-return {stringify = require("cjson").encode}
+local cjson = require("cjson")
+return {stringify = cjson.encode, parse = cjson.decode}

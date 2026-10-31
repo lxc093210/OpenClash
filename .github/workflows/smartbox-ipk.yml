@@ -170,6 +170,9 @@ jobs:
           sed -n "/^lua - <<'LUA'$/,/^LUA$/p" \
             luci-app-openclash/root/usr/libexec/smartbox-generate |
             sed '1d;$d' | luac5.1 -p -
+          LUA_PATH="$GITHUB_WORKSPACE/tests/lua/?.lua;$GITHUB_WORKSPACE/tests/lua/?/init.lua;;" \
+            lua5.1 tests/lua/status_test.lua \
+            luci-app-openclash/luasrc/controller/smartbox_status.lua
 
       - name: Compile package
         shell: bash

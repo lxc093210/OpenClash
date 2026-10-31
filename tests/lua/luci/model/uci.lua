@@ -1,5 +1,11 @@
 local cursor = {}
 
+function cursor:get(config, section, key)
+  assert(config == "smartbox" and section == "main")
+  if key == "api_secret" then return "00000000000000000000000000000000" end
+  if key == "controller_port" then return "19090" end
+end
+
 function cursor:get_all(config, section)
   assert(config == "smartbox" and section == "main")
   return {
