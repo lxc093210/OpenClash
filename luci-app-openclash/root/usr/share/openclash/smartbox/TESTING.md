@@ -119,3 +119,5 @@ routes, so stopping it should restore the pretest network state immediately.
 - The package RPCD ACL grants the LuCI role read/write access to both the
   original `openclash` UCI config and the SmartBox `smartbox` config, so the
   experimental page can persist its own settings without broad UCI access.
+- The isolated VM smoke test checks that ACL entry after installing the IPK,
+  alongside the service and localhost API checks.

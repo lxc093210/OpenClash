@@ -153,6 +153,7 @@ jobs:
           test -x /usr/libexec/smartbox-generate
           test -f /usr/lib/lua/luci/controller/smartbox.lua
           test -f /usr/share/licenses/luci-app-openclash/LICENSE
+          grep -F '"smartbox"' /usr/share/rpcd/acl.d/luci-app-openclash.json
           mode_line="$(ls -l /etc/config/smartbox)"
           case "$mode_line" in
             '-rw-------'*) ;;
