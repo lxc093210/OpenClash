@@ -63,8 +63,13 @@ jobs:
           # does not depend on privileged loop partition node creation.
           root_offset=$((33792 * 512))
           sudo mount -o loop,offset="$root_offset" /tmp/openwrt.img /mnt/smartbox-openwrt
-          sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
-            /mnt/smartbox-openwrt/etc/config/network
+          if ! sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
+            /mnt/smartbox-openwrt/etc/config/network 2>/tmp/network-edit.err; then
+            error="$(tr '\n' ' ' </tmp/network-edit.err)"
+            listing="$(sudo ls -la /mnt/smartbox-openwrt/etc/config 2>&1 | tr '\n' ' ')"
+            echo "::error title=OpenWrt network config edit failed::$error $listing"
+            exit 1
+          fi
           grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
             grep -F "option proto 'dhcp'"
           ssh-keygen -q -t ed25519 -N '' -f /tmp/smartbox-vm-key
