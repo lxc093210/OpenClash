@@ -4,8 +4,8 @@ set -eu
 umask 077
 binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 case "$binary" in
- /*) ;;
- *) binary=/usr/bin/sing-box-smart ;;
+ /usr/bin/sing-box-smart|/usr/local/bin/sing-box-smart) ;;
+ *) echo "Invalid Smart core path" >&2; exit 1 ;;
 esac
 if pidof "${binary##*/}" >/dev/null 2>&1 || pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before replacing the core" >&2
@@ -29,8 +29,8 @@ case "$ARCH" in
  *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 NAME="sing-box-$VERSION-$PLATFORM"
-if [ -x /usr/bin/sing-box-smart ] &&
-   /usr/bin/sing-box-smart version 2>/dev/null | grep -F "$VERSION" >/dev/null; then
+if [ -x "$binary" ] &&
+   "$binary" version 2>/dev/null | grep -F "$VERSION" >/dev/null; then
  echo "Smart core $VERSION is already installed"
  exit 0
 fi
@@ -42,7 +42,7 @@ mkdir "$LOCK" 2>/dev/null || {
  echo "Smart core operation is already running" >&2
  exit 1
 }
-trap 'rm -rf "$TMP"; rm -f /usr/bin/sing-box-smart.new /etc/sing-box-smart/sing-box-smart.previous.new; rmdir "$LOCK"' EXIT
+trap 'rm -rf "$TMP"; rm -f "$binary.new" /etc/sing-box-smart/sing-box-smart.previous.new; rmdir "$LOCK"' EXIT
 echo "Downloading pinned Smart core for $PLATFORM"
 curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
 ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
@@ -56,11 +56,12 @@ chmod 700 "$EXE"
 "$EXE" version | grep -F "$VERSION" >/dev/null || { echo "Unexpected binary version" >&2; exit 1; }
 mkdir -p /usr/bin /etc/sing-box-smart
 chmod 0700 /etc/sing-box-smart
-if [ -f /usr/bin/sing-box-smart ]; then
- cp -p /usr/bin/sing-box-smart /etc/sing-box-smart/sing-box-smart.previous.new
+if [ -f "$binary" ]; then
+ cp -p "$binary" /etc/sing-box-smart/sing-box-smart.previous.new
  mv /etc/sing-box-smart/sing-box-smart.previous.new /etc/sing-box-smart/sing-box-smart.previous
 fi
-cp "$EXE" /usr/bin/sing-box-smart.new
-chmod 755 /usr/bin/sing-box-smart.new
-mv /usr/bin/sing-box-smart.new /usr/bin/sing-box-smart
+mkdir -p "${binary%/*}"
+cp "$EXE" "$binary.new"
+chmod 755 "$binary.new"
+mv "$binary.new" "$binary"
 echo "Installed sing-box Smart $VERSION"

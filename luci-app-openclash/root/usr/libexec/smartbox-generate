@@ -57,7 +57,7 @@ assert(fp:close())
 LUA
 bin="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 case "$bin" in
-  /*) ;;
+  /usr/bin/sing-box-smart|/usr/local/bin/sing-box-smart) ;;
   *) echo "Invalid Smart core path" >&2; exit 1 ;;
 esac
 [ -x "$bin" ] || { echo "Smart binary unavailable: $bin" >&2; exit 1; }

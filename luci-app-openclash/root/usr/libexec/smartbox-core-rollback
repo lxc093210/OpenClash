@@ -4,8 +4,8 @@ PREV=/etc/sing-box-smart/sing-box-smart.previous
 [ -s "$PREV" ] || { echo "No previous core" >&2; exit 1; }
 binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 case "$binary" in
- /*) ;;
- *) binary=/usr/bin/sing-box-smart ;;
+ /usr/bin/sing-box-smart|/usr/local/bin/sing-box-smart) ;;
+ *) echo "Invalid Smart core path" >&2; exit 1 ;;
 esac
 if pidof "${binary##*/}" >/dev/null 2>&1 || pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before rollback" >&2
@@ -14,9 +14,9 @@ fi
 LOCK=/var/lock/smartbox-core.lock
 mkdir -p /var/lock
 mkdir "$LOCK" 2>/dev/null || { echo "Smart core operation is already running" >&2; exit 1; }
-trap 'rm -f /usr/bin/sing-box-smart.rollback; rmdir "$LOCK"' EXIT
+trap 'rm -f "$binary.rollback"; rmdir "$LOCK"' EXIT
 "$PREV" version >/dev/null 2>&1 || { echo "Previous core failed its version check" >&2; exit 1; }
-cp -p "$PREV" /usr/bin/sing-box-smart.rollback
-chmod 755 /usr/bin/sing-box-smart.rollback
-mv /usr/bin/sing-box-smart.rollback /usr/bin/sing-box-smart
+cp -p "$PREV" "$binary.rollback"
+chmod 755 "$binary.rollback"
+mv "$binary.rollback" "$binary"
 echo "Previous Smart core restored"

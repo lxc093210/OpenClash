@@ -4,7 +4,7 @@ set -eu
 echo "SmartBox status"
 binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 case "$binary" in
- /*) ;;
+ /usr/bin/sing-box-smart|/usr/local/bin/sing-box-smart) ;;
  *) binary=/usr/bin/sing-box-smart ;;
 esac
 process_name="${binary##*/}"
