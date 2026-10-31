@@ -39,6 +39,7 @@ jobs:
       - name: Prepare isolated OpenWrt 24.10.3 VM
         run: |
           set -euxo pipefail
+          trap 'rc=$?; echo "::error title=VM preparation failed::line ${LINENO}, exit ${rc}"; exit "$rc"' ERR
           sudo apt-get update -qq
           sudo apt-get install -y -qq qemu-system-x86 qemu-utils parted e2fsprogs
           image=openwrt-24.10.3-x86-64-generic-ext4-combined.img.gz

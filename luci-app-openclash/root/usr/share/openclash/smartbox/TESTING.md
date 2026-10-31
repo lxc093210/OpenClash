@@ -42,6 +42,8 @@ workflow downloads that run's artifact and boots a disposable QEMU OpenWrt
 instance; it does not connect to a physical router. Image preparation accepts
 the verified image's ext4 rootfs directly and does not require loop partition
 device creation.
+If preparation fails, the workflow publishes the failing command's line number
+as an Actions annotation.
 
 ## Localhost validation
 
