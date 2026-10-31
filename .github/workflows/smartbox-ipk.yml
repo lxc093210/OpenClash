@@ -281,12 +281,15 @@ jobs:
             usr/libexec/smartbox-core-install \
             usr/lib/lua/luci/controller/smartbox.lua \
             usr/lib/lua/luci/view/openclash/smartbox_status.htm \
+            usr/share/rpcd/acl.d/luci-app-openclash.json \
             usr/share/licenses/luci-app-openclash/LICENSE; do
             grep -Eq "^((\\./)?)$file$" /tmp/smartbox-manifest.txt || {
               echo "Missing expected package file: $file" >&2
               exit 1
             }
           done
+          tar -xOf "$DATA" ./usr/share/rpcd/acl.d/luci-app-openclash.json |
+            grep -F '"smartbox"' >/dev/null
           tar -tvf "$DATA" | awk '
             $NF == "./etc/init.d/smartbox" || $NF == "./usr/libexec/smartbox-generate" ||
             $NF == "./usr/libexec/smartbox-core-install" || $NF == "./usr/libexec/smartbox-core-rollback" {

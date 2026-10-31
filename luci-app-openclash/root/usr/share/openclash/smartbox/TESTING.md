@@ -116,3 +116,6 @@ routes, so stopping it should restore the pretest network state immediately.
   stock writable root filesystem.
 - The filesystem check accepts e2fsck's documented exit code 1 when repairs
   were applied, while still failing on uncorrected errors.
+- The package RPCD ACL grants the LuCI role read/write access to both the
+  original `openclash` UCI config and the SmartBox `smartbox` config, so the
+  experimental page can persist its own settings without broad UCI access.

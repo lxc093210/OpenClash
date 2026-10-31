@@ -2,10 +2,10 @@
 	"luci-app-openclash": {
 		"description": "Grant UCI access for luci-app-openclash",
 		"read": {
-			"uci": [ "openclash" ]
+			"uci": [ "openclash", "smartbox" ]
 		},
 		"write": {
-			"uci": [ "openclash" ]
+			"uci": [ "openclash", "smartbox" ]
 		}
 	}
 }
