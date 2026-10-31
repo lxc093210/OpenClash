@@ -111,3 +111,6 @@ routes, so stopping it should restore the pretest network state immediately.
 - VM failures in the pinned Smart core installation step include the final
   installer lines in a sanitized CI annotation, covering download, checksum,
   and archive extraction errors without exposing subscription or API secrets.
+- The VM also expands the image root partition and ext4 filesystem after
+  resizing the disk container; the pinned Smart binary is larger than the
+  stock writable root filesystem.

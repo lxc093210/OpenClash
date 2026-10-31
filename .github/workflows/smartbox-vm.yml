@@ -57,6 +57,17 @@ jobs:
             exit 1
           fi
           qemu-img resize /tmp/openwrt.img 1G
+          # qemu-img only grows the disk container. Expand the ext4 root
+          # partition and filesystem as well so the pinned Smart core can be
+          # installed in the disposable VM's writable root filesystem.
+          loopdev="$(sudo losetup --find --show --partscan /tmp/openwrt.img)"
+          sudo parted -s "$loopdev" resizepart 2 100%
+          sudo partprobe "$loopdev" || true
+          rootdev="${loopdev}p2"
+          [ -b "$rootdev" ] || { echo "::error title=OpenWrt root partition missing::$rootdev"; exit 1; }
+          sudo e2fsck -fy "$rootdev"
+          sudo resize2fs "$rootdev"
+          sudo losetup -d "$loopdev"
           sudo mkdir -p /mnt/smartbox-openwrt
           # The verified 24.10.3 combined image has its ext4 rootfs at sector
           # 33792. Mount the existing partition directly so this smoke test
