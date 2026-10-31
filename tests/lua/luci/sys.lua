@@ -5,7 +5,7 @@ function M.exec(command)
   if command:find("logread", 1, true) then
     return "smartbox: " .. secret .. " https://example.invalid/private?token=abc Bearer secret123\n"
   end
-  assert(command:find("curl -fsS", 1, true))
+  assert(command:find("curl -fsS --max-time 3 --max-filesize 1048576", 1, true))
   assert(not command:find(secret, 1, true), "API secret exposed in process arguments")
   if command:find("/smart/weights", 1, true) then
     return '{"weights":{"auto":[{"Name":"node-secret","URL":"https://example.invalid/secret","Auth":"Bearer secret123","Token":"00000000000000000000000000000000","Password":"plain-secret"}]}}'

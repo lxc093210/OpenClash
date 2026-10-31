@@ -76,7 +76,7 @@ function status_data()
   end
   -- Only call the localhost controller, never a user-supplied host/URL.
   local function fetch(path)
-    local cmd = "curl -fsS --max-time 3 -H " ..
+    local cmd = "curl -fsS --max-time 3 --max-filesize 1048576 -H " ..
       util.shellquote("@" .. header_path) ..
       " " .. util.shellquote("http://127.0.0.1:" .. port .. path) ..
       " 2>/dev/null"
