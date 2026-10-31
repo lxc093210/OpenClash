@@ -129,3 +129,4 @@ routes, so stopping it should restore the pretest network state immediately.
   they are returned to the browser.
 - The latest IPK build also runs the action redaction test before the isolated
   VM job installs the package.
+- Sensitive key fields in action error payloads are covered by the same test.
