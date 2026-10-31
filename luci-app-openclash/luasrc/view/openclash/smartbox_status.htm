@@ -40,6 +40,7 @@
   }
   function number(obj, names) {
     var value = field(obj, names);
+    if (typeof value === 'string' && value.trim() !== '') value = Number(value);
     return typeof value === 'number' && isFinite(value) ? value : undefined;
   }
   function groupInfo(groups, name) {
