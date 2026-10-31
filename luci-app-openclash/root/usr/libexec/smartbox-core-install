@@ -24,8 +24,20 @@ case "$ARCH" in
  *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 NAME="sing-box-$VERSION-$PLATFORM"
+if [ -x /usr/bin/sing-box-smart ] &&
+   /usr/bin/sing-box-smart version 2>/dev/null | grep -F "$VERSION" >/dev/null; then
+ echo "Smart core $VERSION is already installed"
+ exit 0
+fi
 TMP="$(mktemp -d /tmp/smartbox-core.XXXXXX)"
-trap 'rm -rf "$TMP"' EXIT
+LOCK=/var/lock/smartbox-core.lock
+mkdir -p /var/lock
+mkdir "$LOCK" 2>/dev/null || {
+ rm -rf "$TMP"
+ echo "Smart core operation is already running" >&2
+ exit 1
+}
+trap 'rm -rf "$TMP"; rm -f /usr/bin/sing-box-smart.new /etc/sing-box-smart/sing-box-smart.previous.new; rmdir "$LOCK"' EXIT
 echo "Downloading pinned Smart core for $PLATFORM"
 curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
 ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
@@ -38,8 +50,10 @@ tar -xOzf "$TMP/$NAME.tar.gz" "$NAME" > "$EXE" || {
 chmod 700 "$EXE"
 "$EXE" version | grep -F "$VERSION" >/dev/null || { echo "Unexpected binary version" >&2; exit 1; }
 mkdir -p /usr/bin /etc/sing-box-smart
+chmod 0700 /etc/sing-box-smart
 if [ -f /usr/bin/sing-box-smart ]; then
- cp -p /usr/bin/sing-box-smart /etc/sing-box-smart/sing-box-smart.previous
+ cp -p /usr/bin/sing-box-smart /etc/sing-box-smart/sing-box-smart.previous.new
+ mv /etc/sing-box-smart/sing-box-smart.previous.new /etc/sing-box-smart/sing-box-smart.previous
 fi
 cp "$EXE" /usr/bin/sing-box-smart.new
 chmod 755 /usr/bin/sing-box-smart.new

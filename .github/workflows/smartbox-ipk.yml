@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1 lua-cjson
           wget -q --https-only --retry-connrefused --tries=3 "$SDK_URL" -O /tmp/sdk.tar.zst
           printf '%s  %s\n' "$SDK_SHA256" /tmp/sdk.tar.zst | sha256sum -c -
           mkdir -p /tmp/sdk
@@ -164,6 +164,9 @@ jobs:
           luac5.1 -p luci-app-openclash/luasrc/controller/smartbox.lua
           luac5.1 -p luci-app-openclash/luasrc/controller/smartbox_status.lua
           luac5.1 -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          for script in luci-app-openclash/root/usr/libexec/smartbox-*; do
+            sh -n "$script"
+          done
           sed -n "/^lua - <<'LUA'$/,/^LUA$/p" \
             luci-app-openclash/root/usr/libexec/smartbox-generate |
             sed '1d;$d' | luac5.1 -p -
@@ -195,6 +198,24 @@ jobs:
           tar -xOzf /tmp/sing-box-smart.tar.gz "$name" > /tmp/sing-box-smart
           chmod 0755 /tmp/sing-box-smart
           /tmp/sing-box-smart check -c "$GITHUB_WORKSPACE/tests/smartbox-local.json"
+
+      - name: Test generated Smart config
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LUA_PATH="$GITHUB_WORKSPACE/tests/lua/?.lua;$GITHUB_WORKSPACE/tests/lua/?/init.lua;;"
+          export CANDIDATE=/tmp/smartbox-generated.json
+          sed -n "/^lua - <<'LUA'$/,/^LUA$/p" \
+            luci-app-openclash/root/usr/libexec/smartbox-generate |
+            sed '1d;$d' > /tmp/smartbox-generator.lua
+          lua5.1 /tmp/smartbox-generator.lua
+          python3 -c 'import json; x=json.load(open("/tmp/smartbox-generated.json")); assert len(x["providers"]) == 2; assert x["outbounds"][0]["providers"] == ["first", "second"]'
+          /tmp/sing-box-smart check -c "$CANDIDATE"
+          if SMARTBOX_TEST_COLLISION=1 lua5.1 /tmp/smartbox-generator.lua > /tmp/smartbox-invalid.log 2>&1; then
+            echo 'Generator accepted overlapping local ports' >&2
+            exit 1
+          fi
+          grep -q 'proxy and controller ports must differ' /tmp/smartbox-invalid.log
 
       - name: Find IPK
         shell: bash
@@ -234,7 +255,8 @@ jobs:
             usr/libexec/smartbox-generate \
             usr/libexec/smartbox-core-install \
             usr/lib/lua/luci/controller/smartbox.lua \
-            usr/lib/lua/luci/view/openclash/smartbox_status.htm; do
+            usr/lib/lua/luci/view/openclash/smartbox_status.htm \
+            usr/share/licenses/luci-app-openclash/LICENSE; do
             grep -Eq "^((\\./)?)$file$" /tmp/smartbox-manifest.txt || {
               echo "Missing expected package file: $file" >&2
               exit 1

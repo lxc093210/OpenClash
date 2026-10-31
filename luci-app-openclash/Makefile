@@ -3,6 +3,8 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=luci-app-openclash
 PKG_VERSION:=0.48.002
 PKG_MAINTAINER:=vernesong <https://github.com/vernesong/OpenClash>
+PKG_LICENSE:=MIT
+PKG_LICENSE_FILES:=LICENSE
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
@@ -54,6 +56,7 @@ endef
 define Build/Prepare
 	$(CP) $(CURDIR)/root $(PKG_BUILD_DIR)
 	$(CP) $(CURDIR)/luasrc $(PKG_BUILD_DIR)
+	$(CP) $(CURDIR)/LICENSE $(PKG_BUILD_DIR)
 	# Replace the @OPENCLASH_VERSION@ token with the package version (browser asset cache keys).
 	sed -i 's|@OPENCLASH_VERSION@|$(PKG_VERSION)|g' $(PKG_BUILD_DIR)/luasrc/openclash.lua $(PKG_BUILD_DIR)/luasrc/view/openclash/*.htm
 	$(foreach po,$(wildcard ${CURDIR}/po/zh-cn/*.po), \
@@ -152,6 +155,8 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/*.*.lmo $(1)/usr/lib/lua/luci/i18n/
+	$(INSTALL_DIR) $(1)/usr/share/licenses/$(PKG_NAME)
+	$(INSTALL_DATA) $(CURDIR)/LICENSE $(1)/usr/share/licenses/$(PKG_NAME)/LICENSE
 	$(CP) $(PKG_BUILD_DIR)/root/* $(1)/
 	$(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
 endef

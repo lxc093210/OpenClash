@@ -6,6 +6,10 @@ if pidof sing-box-smart >/dev/null 2>&1; then
  echo "Stop SmartBox before rollback" >&2
  exit 1
 fi
+LOCK=/var/lock/smartbox-core.lock
+mkdir -p /var/lock
+mkdir "$LOCK" 2>/dev/null || { echo "Smart core operation is already running" >&2; exit 1; }
+trap 'rm -f /usr/bin/sing-box-smart.rollback; rmdir "$LOCK"' EXIT
 "$PREV" version >/dev/null 2>&1 || { echo "Previous core failed its version check" >&2; exit 1; }
 cp -p "$PREV" /usr/bin/sing-box-smart.rollback
 chmod 755 /usr/bin/sing-box-smart.rollback
