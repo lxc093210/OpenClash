@@ -28,6 +28,12 @@ use `opkg install --force-reinstall /tmp/luci-app-openclash_0.48.002_all.ipk`.
 Check that `opkg` resolves all declared runtime dependencies. The IPK does not
 bundle a Smart core binary.
 
+The isolated VM smoke test can also be started from the `SmartBox isolated
+OpenWrt VM smoke` workflow. Use its **Run workflow** action and enter the run
+ID of a successful IPK build (for example, `41148815212`). The workflow
+downloads that run's artifact and boots a disposable QEMU OpenWrt instance;
+it does not connect to a physical router.
+
 ## Localhost validation
 
 1. Open LuCI > Services > SmartBox (Experimental). Keep the independent
