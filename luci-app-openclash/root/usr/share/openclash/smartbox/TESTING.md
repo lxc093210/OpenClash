@@ -47,6 +47,8 @@ as an Actions annotation and uses Python's standard gzip reader for the
 verified image.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
+Reusable workflow calls download the artifact from the caller run; direct
+manual runs use the supplied verified build run ID.
 Decompression errors are surfaced as an Actions annotation.
 The preparation step also verifies the gzip magic bytes before extraction.
 The VM preparation edits a preseeded network UCI file when present; otherwise
