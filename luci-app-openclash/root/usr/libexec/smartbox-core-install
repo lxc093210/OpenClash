@@ -44,7 +44,7 @@ mkdir "$LOCK" 2>/dev/null || {
 }
 trap 'rm -rf "$TMP"; rm -f "$binary.new" /etc/sing-box-smart/sing-box-smart.previous.new; rmdir "$LOCK"' EXIT
 echo "Downloading pinned Smart core for $PLATFORM"
-curl -fLSs --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
+curl -fLSs --connect-timeout 15 --max-time 300 --retry 2 "$BASE/$NAME.tar.gz" -o "$TMP/$NAME.tar.gz"
 ACTUAL="$(sha256sum "$TMP/$NAME.tar.gz" | awk '{print $1}')"
 [ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA256 mismatch" >&2; exit 1; }
 EXE="$TMP/$NAME"
