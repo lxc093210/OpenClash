@@ -38,7 +38,7 @@ jobs:
 
       - name: Prepare isolated OpenWrt 24.10.3 VM
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq qemu-system-x86 qemu-utils parted e2fsprogs
           image=openwrt-24.10.3-x86-64-generic-ext4-combined.img.gz
@@ -52,7 +52,12 @@ jobs:
           qemu-img resize /tmp/openwrt.img 1G
           sudo parted -s /tmp/openwrt.img resizepart 2 100%
           loop="$(sudo losetup --find --partscan --show /tmp/openwrt.img)"
-          sudo e2fsck -f -y "${loop}p2"
+          fsck_rc=0
+          sudo e2fsck -f -y "${loop}p2" || fsck_rc=$?
+          case "$fsck_rc" in
+            0|1|2) ;;
+            *) exit "$fsck_rc" ;;
+          esac
           sudo resize2fs "${loop}p2"
           sudo mkdir -p /mnt/smartbox-openwrt
           sudo mount "${loop}p2" /mnt/smartbox-openwrt
