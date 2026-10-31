@@ -80,7 +80,8 @@ function status_data()
       util.shellquote("@" .. header_path) ..
       " " .. util.shellquote("http://127.0.0.1:" .. port .. path) ..
       " 2>/dev/null"
-    return json.parse(sys.exec(cmd))
+    local ok, result = pcall(json.parse, sys.exec(cmd))
+    return ok and result or nil
   end
   local data = fetch("/smart/weights")
   if type(data) ~= "table" or type(data.weights) ~= "table" then
