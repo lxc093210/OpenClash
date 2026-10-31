@@ -49,6 +49,8 @@ The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Decompression errors are surfaced as an Actions annotation.
 The preparation step also verifies the gzip magic bytes before extraction.
+It uses zlib stream decompression because the release archive contains a
+trailing certificate metadata block after the gzip stream.
 
 ## Localhost validation
 

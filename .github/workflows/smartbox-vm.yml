@@ -51,7 +51,7 @@ jobs:
             "/tmp/$image" | sha256sum -c -
           magic="$(od -An -tx1 -N2 "/tmp/$image" | tr -d '[:space:]')"
           [ "$magic" = "1f8b" ] || { echo "::error title=Unexpected OpenWrt image header::magic $magic"; exit 1; }
-          if ! python3 -c 'import gzip, shutil, sys; source = gzip.open(sys.argv[1], "rb"); target = open("/tmp/openwrt.img", "wb"); shutil.copyfileobj(source, target); source.close(); target.close()' "/tmp/$image" 2>/tmp/image-decompress.err; then
+          if ! python3 -c 'import sys, zlib; source = open(sys.argv[1], "rb"); payload = zlib.decompress(source.read(), 31); source.close(); target = open("/tmp/openwrt.img", "wb"); target.write(payload); target.close()' "/tmp/$image" 2>/tmp/image-decompress.err; then
             error="$(tr '\n' ' ' </tmp/image-decompress.err)"
             echo "::error title=OpenWrt image decompression failed::$error"
             exit 1
