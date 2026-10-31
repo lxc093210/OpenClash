@@ -148,8 +148,12 @@ jobs:
           ip route show > /tmp/routes.before
           /usr/libexec/smartbox-core-install
           /usr/libexec/smartbox-secret-init
-          uci set smartbox.smoke=provider
-          uci set smartbox.smoke.enabled=1
+          if ! uci set smartbox.smoke=provider 2>/tmp/uci-set.err; then
+            echo "::error title=SmartBox provider section write failed::$(tr '\n' ' ' </tmp/uci-set.err)"; exit 1
+          fi
+          if ! uci set smartbox.smoke.enabled=1 2>/tmp/uci-set.err; then
+            echo "::error title=SmartBox provider enabled write failed::$(tr '\n' ' ' </tmp/uci-set.err) state=$(uci show smartbox 2>&1 | tr '\n' ' ')"; exit 1
+          fi
           uci set smartbox.smoke.name=smoke
           uci set smartbox.smoke.url=https://example.invalid/subscription
           uci commit smartbox
