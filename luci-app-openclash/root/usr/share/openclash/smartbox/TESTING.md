@@ -42,9 +42,9 @@ workflow downloads that run's artifact and boots a disposable QEMU OpenWrt
 instance; it does not connect to a physical router. Image preparation accepts
 the verified image's ext4 rootfs directly and does not require loop partition
 device creation.
-If preparation fails, the workflow publishes the failing command's line number
-as an Actions annotation and uses Python's standard gzip reader for the
-verified image.
+If preparation or installation fails, the workflow publishes the failing
+command's line number as an Actions annotation and uses SSH streaming instead
+of SCP for the IPK transfer.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Reusable workflow calls download the artifact from the caller run; direct

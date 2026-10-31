@@ -121,9 +121,7 @@ jobs:
           fi
           ipk="$(find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit)"
           [ -n "$ipk" ] || { echo "::error title=SmartBox IPK artifact missing::$(find /tmp/smartbox-artifact -maxdepth 2 -type f 2>&1 | tr '\n' ' ')"; exit 1; }
-          scp -i /tmp/smartbox-vm-key -P 2222 -o BatchMode=yes \
-            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "$ipk" root@127.0.0.1:/tmp/smartbox.ipk
+          ssh "${ssh_opts[@]}" root@127.0.0.1 'cat > /tmp/smartbox.ipk' < "$ipk"
           ssh "${ssh_opts[@]}" root@127.0.0.1 \
             'opkg update && opkg install luci && opkg install /tmp/smartbox.ipk'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
