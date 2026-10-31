@@ -50,6 +50,8 @@ and SmartBox IPK installation errors are emitted as Actions annotations.
 Guest runtime assertions have their own failure line annotation.
 The package build also sets `/etc/config/smartbox` to `0600` before creating
 the IPK, so secrets are protected even if a package manager skips postinst.
+This document is updated on the feature branch to trigger the isolated smoke
+job after each package build.
 The disposable VM replaces the generic image's `dnsmasq` package because the
 LuCI dependency selects `dnsmasq-full`; the
 smoke setup removes that disposable base package before installing LuCI.
