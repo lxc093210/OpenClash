@@ -49,15 +49,7 @@ jobs:
           printf '%s  %s\n' \
             cc621a8a8a2b780d3c8f47ce3ecb2ba59e4a0cff1ebeb8d096d7c7e0202799c7 \
             "/tmp/$image" | sha256sum -c -
-          python3 - "$image" <<'PY'
-          import gzip
-          import shutil
-          import sys
-
-          with gzip.open("/tmp/" + sys.argv[1], "rb") as source:
-              with open("/tmp/openwrt.img", "wb") as target:
-                  shutil.copyfileobj(source, target)
-          PY
+          python3 -c 'import gzip, shutil, sys; source = gzip.open("/tmp/" + sys.argv[1], "rb"); target = open("/tmp/openwrt.img", "wb"); shutil.copyfileobj(source, target); source.close(); target.close()' "$image"
           qemu-img resize /tmp/openwrt.img 1G
           sudo mkdir -p /mnt/smartbox-openwrt
           # The verified 24.10.3 combined image has its ext4 rootfs at sector
