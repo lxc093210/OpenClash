@@ -121,3 +121,5 @@ routes, so stopping it should restore the pretest network state immediately.
   experimental page can persist its own settings without broad UCI access.
 - The isolated VM smoke test checks that ACL entry after installing the IPK,
   alongside the service and localhost API checks.
+- It also exercises the pinned core rollback helper by restoring a verified
+  previous binary and checking its version before starting SmartBox.
