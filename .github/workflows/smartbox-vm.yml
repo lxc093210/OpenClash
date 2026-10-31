@@ -97,6 +97,10 @@ jobs:
         run: |
           set -euxo pipefail
           trap 'rc=$?; echo "::error title=VM boot/install failed::line ${LINENO}, exit ${rc}"; exit "$rc"' ERR
+          ipk="$(find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit)"
+          [ -n "$ipk" ] || { echo "::error title=SmartBox IPK artifact missing::$(find /tmp/smartbox-artifact -maxdepth 2 -type f 2>&1 | tr '\n' ' ')"; exit 1; }
+          ipk_name="$(basename "$ipk")"
+          (cd "$(dirname "$ipk")" && python3 -m http.server 8000 --bind 0.0.0.0 >/tmp/smartbox-http.log 2>&1 & echo $! >/tmp/smartbox-http.pid)
           qemu-system-x86_64 -m 1024 -smp 2 \
             -drive file=/tmp/openwrt.img,format=raw,if=virtio \
             -netdev user,id=net0,hostfwd=tcp:127.0.0.1:2222-:22 \
@@ -119,9 +123,8 @@ jobs:
             echo 'OpenWrt VM did not accept SSH' >&2
             exit 1
           fi
-          ipk="$(find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit)"
-          [ -n "$ipk" ] || { echo "::error title=SmartBox IPK artifact missing::$(find /tmp/smartbox-artifact -maxdepth 2 -type f 2>&1 | tr '\n' ' ')"; exit 1; }
-          ssh "${ssh_opts[@]}" root@127.0.0.1 'cat > /tmp/smartbox.ipk' < "$ipk"
+          ssh "${ssh_opts[@]}" root@127.0.0.1 \
+            "wget -q -O /tmp/smartbox.ipk http://10.0.2.2:8000/$ipk_name"
           ssh "${ssh_opts[@]}" root@127.0.0.1 \
             'opkg update && opkg install luci && opkg install /tmp/smartbox.ipk'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
@@ -168,4 +171,7 @@ jobs:
         run: |
           if [ -f /tmp/openwrt-qemu.pid ]; then
             kill "$(cat /tmp/openwrt-qemu.pid)" || true
+          fi
+          if [ -f /tmp/smartbox-http.pid ]; then
+            kill "$(cat /tmp/smartbox-http.pid)" || true
           fi

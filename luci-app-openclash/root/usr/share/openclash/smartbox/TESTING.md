@@ -44,7 +44,8 @@ the verified image's ext4 rootfs directly and does not require loop partition
 device creation.
 If preparation or installation fails, the workflow publishes the failing
 command's line number as an Actions annotation and uses SSH streaming instead
-of SCP for the IPK transfer.
+of SCP for control traffic; the VM downloads the IPK from a temporary
+runner-local HTTP server over QEMU user networking.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Reusable workflow calls download the artifact from the caller run; direct
