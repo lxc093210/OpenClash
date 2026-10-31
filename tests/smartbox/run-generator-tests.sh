@@ -28,6 +28,9 @@ assert data['providers'][0]['type']=='remote'
 assert data['providers'][0]['tag']=='airport_test'
 assert data['outbounds'][0]['type']=='smart'
 assert data['outbounds'][0]['providers']==['airport_test']
+assert data['outbounds'][0]['use_lightgbm'] is True
+assert data['outbounds'][0]['collect_data'] is True
+assert data['outbounds'][0]['sample_rate']==0.25
 assert data['experimental']['clash_api']['external_controller']=='127.0.0.1:19090'
 assert len(data['experimental']['clash_api']['secret']) >= 24
 PY

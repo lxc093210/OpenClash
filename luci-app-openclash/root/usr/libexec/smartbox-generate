@@ -44,7 +44,12 @@ local obj = {
   http_clients={{tag="fetch", detour="direct"}},
   inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}},
   providers=providers,
-  outbounds={{type="smart", tag="auto", providers=tags},{type="direct", tag="direct"}},
+  outbounds={{
+    type="smart", tag="auto", providers=tags,
+    url="https://www.gstatic.com/generate_204", interval="5m",
+    timeout="10s", expected_status="204", use_lightgbm=true,
+    collect_data=true, sample_rate=0.25
+  },{type="direct", tag="direct"}},
   route={final="auto", default_http_client="fetch"},
   experimental={
     cache_file={enabled=true, path="/etc/sing-box-smart/cache.db"},
