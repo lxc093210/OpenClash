@@ -47,6 +47,7 @@ as an Actions annotation and uses Python's standard gzip reader for the
 verified image.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
+Decompression errors are surfaced as an Actions annotation.
 
 ## Localhost validation
 
