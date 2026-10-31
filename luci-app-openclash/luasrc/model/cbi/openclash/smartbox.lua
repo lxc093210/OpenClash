@@ -11,6 +11,10 @@ local enabled = s:option(Flag, "enabled", translate("Enable independent service"
 enabled.default = "0"
 local binary = s:option(Value, "binary", translate("Smart binary path"))
 binary.default = "/usr/bin/sing-box-smart"
+function binary.validate(self, value)
+ if value and value:match("^/[A-Za-z0-9_./-]+$") then return value end
+ return nil, translate("Use an absolute executable path without spaces or shell characters")
+end
 local port = s:option(Value, "listen_port", translate("Local mixed proxy port"))
 port.datatype = "port"
 port.default = "2088"
@@ -68,7 +72,11 @@ end
 local controls = m:section(SimpleSection)
 local core = controls:option(DummyValue, "_core", translate("Smart core"))
 function core.cfgvalue(self, section)
-  local line = require("luci.sys").exec("/usr/bin/sing-box-smart version 2>/dev/null | head -n 1") or ""
+  local uci = require("luci.model.uci").cursor()
+  local util = require("luci.util")
+  local bin = uci:get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
+  if not bin:match("^/[A-Za-z0-9_./-]+$") then return translate("Invalid core path") end
+  local line = require("luci.sys").exec(util.shellquote(bin) .. " version 2>/dev/null | head -n 1") or ""
   local version = line:gsub("%s+$", "")
   return version ~= "" and version or translate("Not installed")
 end

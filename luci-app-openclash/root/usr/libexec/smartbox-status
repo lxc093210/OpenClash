@@ -2,13 +2,19 @@
 # Read-only service status, no credentials printed.
 set -eu
 echo "SmartBox status"
-if pidof sing-box-smart >/dev/null 2>&1; then
+binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
+case "$binary" in
+ /*) ;;
+ *) binary=/usr/bin/sing-box-smart ;;
+esac
+process_name="${binary##*/}"
+if pidof "$process_name" >/dev/null 2>&1; then
  echo "Process: running"
 else
  echo "Process: stopped"
 fi
-if [ -x /usr/bin/sing-box-smart ]; then
- /usr/bin/sing-box-smart version | head -n 1
+if [ -x "$binary" ]; then
+ "$binary" version | head -n 1
 else
  echo "Core: not installed"
 fi
