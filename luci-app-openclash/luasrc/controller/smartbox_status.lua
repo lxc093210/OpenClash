@@ -97,10 +97,17 @@ function status_data()
   -- Smart node metadata can contain provider URLs or authorization material.
   -- Keep the authenticated LuCI view useful while ensuring the response cannot
   -- accidentally echo credentials returned by a core or a custom provider.
-  local function redact(value)
+  local function redact(value, key)
+    if type(key) == "string" then
+      local lower_key = key:lower()
+      if type(value) == "string" and lower_key:match("url") then return "[redacted URL]" end
+      if type(value) == "string" and lower_key:match("secret|token|password|authorization|credential|header") then
+        return "[redacted]"
+      end
+    end
     if type(value) == "table" then
       for key, item in pairs(value) do
-        value[key] = redact(item)
+        value[key] = redact(item, key)
       end
       return value
     end

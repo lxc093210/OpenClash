@@ -26,4 +26,5 @@ local node = data.weights.auto[1]
 assert(node and node.Token == "[redacted]")
 assert(node.URL == "[redacted URL]")
 assert(node.Auth == "Bearer [redacted]")
+assert(node.Password == "[redacted]")
 assert(not real_open(header, "r"), "temporary API header was not removed")
