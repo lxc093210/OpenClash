@@ -1,0 +1,141 @@
+name: SmartBox isolated OpenWrt VM smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/sing-box-smart-adapter]
+    paths:
+      - '.github/workflows/smartbox-vm.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download latest verified SmartBox IPK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id="$(gh run list --workflow smartbox-ipk.yml \
+            --branch feature/sing-box-smart-adapter --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [ -n "$run_id" ]
+          mkdir -p /tmp/smartbox-artifact
+          gh run download "$run_id" --name smartbox-openwrt-x86-64-ipk-experimental \
+            --dir /tmp/smartbox-artifact
+          find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit | grep -q .
+          echo "Testing package from build run $run_id"
+
+      - name: Prepare isolated OpenWrt 24.10.3 VM
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 qemu-utils parted e2fsprogs
+          image=openwrt-24.10.3-x86-64-generic-ext4-combined.img.gz
+          curl -fLSs --retry 2 \
+            "https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/$image" \
+            -o "/tmp/$image"
+          printf '%s  %s\n' \
+            cc621a8a8a2b780d3c8f47ce3ecb2ba59e4a0cff1ebeb8d096d7c7e0202799c7 \
+            "/tmp/$image" | sha256sum -c -
+          gzip -dc "/tmp/$image" > /tmp/openwrt.img
+          qemu-img resize /tmp/openwrt.img 1G
+          sudo parted -s /tmp/openwrt.img resizepart 2 100%
+          loop="$(sudo losetup --find --partscan --show /tmp/openwrt.img)"
+          sudo e2fsck -f -y "${loop}p2"
+          sudo resize2fs "${loop}p2"
+          sudo mkdir -p /mnt/smartbox-openwrt
+          sudo mount "${loop}p2" /mnt/smartbox-openwrt
+          sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
+            /mnt/smartbox-openwrt/etc/config/network
+          grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network
+          ssh-keygen -q -t ed25519 -N '' -f /tmp/smartbox-vm-key
+          sudo install -d -m 0700 /mnt/smartbox-openwrt/etc/dropbear
+          sudo install -m 0600 /tmp/smartbox-vm-key.pub \
+            /mnt/smartbox-openwrt/etc/dropbear/authorized_keys
+          sudo umount /mnt/smartbox-openwrt
+          sudo losetup -d "$loop"
+
+      - name: Boot VM and install package
+        run: |
+          set -euo pipefail
+          qemu-system-x86_64 -m 1024 -smp 2 \
+            -drive file=/tmp/openwrt.img,format=raw,if=virtio \
+            -netdev user,id=net0,hostfwd=tcp:127.0.0.1:2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
+            -display none -serial file:/tmp/openwrt-serial.log \
+            -daemonize -pidfile /tmp/openwrt-qemu.pid
+          ssh_opts=(-i /tmp/smartbox-vm-key -p 2222 -o BatchMode=yes \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=3)
+          ready=0
+          for attempt in $(seq 1 90); do
+            if ssh "${ssh_opts[@]}" root@127.0.0.1 'echo ready' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -n 100 /tmp/openwrt-serial.log
+            echo 'OpenWrt VM did not accept SSH' >&2
+            exit 1
+          fi
+          ipk="$(find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit)"
+          scp -i /tmp/smartbox-vm-key -P 2222 -o BatchMode=yes \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "$ipk" root@127.0.0.1:/tmp/smartbox.ipk
+          ssh "${ssh_opts[@]}" root@127.0.0.1 \
+            'opkg update && opkg install luci && opkg install /tmp/smartbox.ipk'
+          ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
+          set -eu
+          opkg status luci-app-openclash | grep -F 'Status: install ok installed'
+          test -x /etc/init.d/smartbox
+          test -x /usr/libexec/smartbox-generate
+          test -f /usr/lib/lua/luci/controller/smartbox.lua
+          test -f /usr/share/licenses/luci-app-openclash/LICENSE
+          test "$(stat -c %a /etc/config/smartbox)" = 600
+          uci show openclash > /tmp/openclash.before
+          uci show dhcp > /tmp/dhcp.before
+          uci show firewall > /tmp/firewall.before
+          ip route show > /tmp/routes.before
+          /usr/libexec/smartbox-core-install
+          /usr/libexec/smartbox-secret-init
+          provider="$(uci add smartbox provider)"
+          uci set "smartbox.$provider.enabled=1"
+          uci set "smartbox.$provider.name=smoke"
+          uci set "smartbox.$provider.url=https://example.invalid/subscription"
+          uci commit smartbox
+          /usr/libexec/smartbox-generate
+          uci set smartbox.main.enabled=1
+          uci commit smartbox
+          /etc/init.d/smartbox start
+          sleep 5
+          pidof sing-box-smart
+          secret="$(uci -q get smartbox.main.api_secret)"
+          curl -fsS --max-time 5 -H "Authorization: Bearer $secret" \
+            http://127.0.0.1:19090/smart/groups | grep -F 'groups'
+          /etc/init.d/smartbox stop
+          uci show openclash > /tmp/openclash.after
+          uci show dhcp > /tmp/dhcp.after
+          uci show firewall > /tmp/firewall.after
+          ip route show > /tmp/routes.after
+          cmp /tmp/openclash.before /tmp/openclash.after
+          cmp /tmp/dhcp.before /tmp/dhcp.after
+          cmp /tmp/firewall.before /tmp/firewall.after
+          cmp /tmp/routes.before /tmp/routes.after
+          GUEST
+
+      - name: Shut down isolated VM
+        if: always()
+        run: |
+          if [ -f /tmp/openwrt-qemu.pid ]; then
+            kill "$(cat /tmp/openwrt-qemu.pid)" || true
+          fi
