@@ -50,7 +50,8 @@ and SmartBox IPK installation errors are emitted as Actions annotations.
 Guest runtime assertions have their own failure line annotation.
 The guest mode check uses BusyBox `ls -l` because the minimal image does not
 ship `stat`.
-Provider UCI write failures include the returned anonymous section ID.
+The guest uses an explicit `smoke` provider section to avoid anonymous UCI
+section differences in minimal images.
 The package build also sets `/etc/config/smartbox` to `0600` before creating
 the IPK, so secrets are protected even if a package manager skips postinst.
 This document is updated on the feature branch to trigger the isolated smoke

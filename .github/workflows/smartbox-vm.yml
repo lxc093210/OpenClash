@@ -148,11 +148,10 @@ jobs:
           ip route show > /tmp/routes.before
           /usr/libexec/smartbox-core-install
           /usr/libexec/smartbox-secret-init
-          provider="$(uci add smartbox provider)"
-          [ -n "$provider" ] || { echo "::error title=SmartBox provider section missing::uci add returned no section"; exit 1; }
-          uci set "smartbox.$provider.enabled=1" || { echo "::error title=SmartBox provider UCI write failed::provider=$provider"; exit 1; }
-          uci set "smartbox.$provider.name=smoke" || { echo "::error title=SmartBox provider name write failed::provider=$provider"; exit 1; }
-          uci set "smartbox.$provider.url=https://example.invalid/subscription" || { echo "::error title=SmartBox provider URL write failed::provider=$provider"; exit 1; }
+          uci set smartbox.smoke=provider
+          uci set smartbox.smoke.enabled=1
+          uci set smartbox.smoke.name=smoke
+          uci set smartbox.smoke.url=https://example.invalid/subscription
           uci commit smartbox
           /usr/libexec/smartbox-generate
           uci set smartbox.main.enabled=1
