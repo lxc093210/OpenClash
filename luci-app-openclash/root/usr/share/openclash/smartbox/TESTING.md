@@ -39,7 +39,8 @@ ID of a successful IPK build (for example, `41218321096`). The latest
 successful build's artifact is available at
 `https://github.com/lxc093210/OpenClash/actions/artifacts/13048178993`. The
 workflow downloads that run's artifact and boots a disposable QEMU OpenWrt
-instance; it does not connect to a physical router.
+instance; it does not connect to a physical router. Image preparation accepts
+e2fsck return codes 0, 1, and 2 when the filesystem is repairable.
 
 ## Localhost validation
 
