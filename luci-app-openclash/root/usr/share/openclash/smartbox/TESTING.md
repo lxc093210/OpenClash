@@ -35,9 +35,11 @@ bundle a Smart core binary.
 
 The isolated VM smoke test can also be started from the `SmartBox isolated
 OpenWrt VM smoke` workflow. Use its **Run workflow** action and enter the run
-ID of a successful IPK build (for example, `41148815212`). The workflow
-downloads that run's artifact and boots a disposable QEMU OpenWrt instance;
-it does not connect to a physical router.
+ID of a successful IPK build (for example, `41218321096`). The latest
+successful build's artifact is available at
+`https://github.com/lxc093210/OpenClash/actions/artifacts/13048178993`. The
+workflow downloads that run's artifact and boots a disposable QEMU OpenWrt
+instance; it does not connect to a physical router.
 
 ## Localhost validation
 
