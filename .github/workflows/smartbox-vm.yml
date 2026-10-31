@@ -126,7 +126,7 @@ jobs:
           ssh "${ssh_opts[@]}" root@127.0.0.1 \
             "wget -q -O /tmp/smartbox.ipk http://10.0.2.2:8000/$ipk_name"
           ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg update >/tmp/opkg-update.log 2>&1 || { echo "::error title=OpenWrt opkg update failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-update.log)"; exit 1; }'
-          ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install luci >/tmp/opkg-luci.log 2>&1 || { echo "::error title=OpenWrt LuCI install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-luci.log)"; exit 1; }'
+          ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install --force-overwrite luci >/tmp/opkg-luci.log 2>&1 || { echo "::error title=OpenWrt LuCI install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-luci.log)"; exit 1; }'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'opkg install /tmp/smartbox.ipk >/tmp/opkg-smartbox.log 2>&1 || { echo "::error title=SmartBox IPK install failed::$(tr '\''\n'\'' '\'' '\'' </tmp/opkg-smartbox.log)"; exit 1; }'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
           set -eu
