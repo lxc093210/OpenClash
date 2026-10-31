@@ -52,7 +52,7 @@ manual runs use the supplied verified build run ID.
 Decompression errors are surfaced as an Actions annotation.
 The preparation step also verifies the gzip magic bytes before extraction.
 The VM preparation edits a preseeded network UCI file when present; otherwise
-it keeps the image defaults.
+it writes a minimal DHCP LAN configuration for QEMU user-mode networking.
 It uses zlib stream decompression because the release archive contains a
 trailing certificate metadata block after the gzip stream.
 

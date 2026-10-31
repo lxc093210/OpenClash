@@ -69,7 +69,23 @@ jobs:
             grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
               grep -F "option proto 'dhcp'"
           else
-            echo "No preseeded network UCI file; using the image defaults"
+            echo "No preseeded network UCI file; creating a DHCP LAN for QEMU user networking"
+            sudo tee /mnt/smartbox-openwrt/etc/config/network >/dev/null <<'EOF'
+          config interface 'loopback'
+                  option device 'lo'
+                  option proto 'static'
+                  option ipaddr '127.0.0.1'
+                  option netmask '255.0.0.0'
+
+          config device
+                  option name 'br-lan'
+                  option type 'bridge'
+                  list ports 'eth0'
+
+          config interface 'lan'
+                  option device 'br-lan'
+                  option proto 'dhcp'
+          EOF
           fi
           ssh-keygen -q -t ed25519 -N '' -f /tmp/smartbox-vm-key
           sudo install -d -m 0700 /mnt/smartbox-openwrt/etc/dropbear
