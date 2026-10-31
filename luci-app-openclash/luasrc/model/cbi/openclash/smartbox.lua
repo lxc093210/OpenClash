@@ -21,6 +21,11 @@ local secret = s:option(Value, "api_secret", translate("API secret"))
 secret.password = true
 secret.rmempty = true
 secret.description = translate("Required to start: a random token with at least 24 characters. You can generate it below.")
+function secret.validate(self, value)
+  if value == nil or value == "" then return value end
+  if #value >= 24 and value:match("^[%w_-]+$") then return value end
+  return nil, translate("Use at least 24 letters, numbers, underscore or hyphen characters")
+end
 local keygen = s:option(Button, "_generate_secret", translate("Generate API secret"))
 keygen.inputstyle = "apply"
 function keygen.write(self, section)
@@ -40,16 +45,25 @@ on.default = "0"
 local name = p:option(Value, "name", translate("Unique name"))
 name.datatype = "uciname"
 name.rmempty = false
+function name.validate(self, value)
+ if value and value:match("^[%w_-]+$") then return value end
+ return nil, translate("Use only letters, numbers, underscore or hyphen characters")
+end
 local url = p:option(Value, "url", translate("Subscription URL"))
 url.password = true
 url.rmempty = false
 function url.validate(self, value, section)
- if value and value:match("^https://") then return value end
+ if value and value:match("^https://[^%c%s]+$") then return value end
  return nil, translate("An HTTPS URL is required")
 end
 local interval = p:option(Value, "update_interval", translate("Refresh interval"))
 interval.default = "12h"
 interval.rmempty = false
+function interval.validate(self, value)
+ local count, unit = value and value:match("^([1-9]%d*)([hm])$")
+ if count and (unit == "h" or tonumber(count) >= 60) then return value end
+ return nil, translate("Use an interval of at least 1 hour, for example 1h or 12h")
+end
 
 local controls = m:section(SimpleSection)
 local core = controls:option(DummyValue, "_core", translate("Smart core"))
