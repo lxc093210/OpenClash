@@ -127,3 +127,5 @@ routes, so stopping it should restore the pretest network state immediately.
   test and is limited to recompute, clear-selection, pin, and unpin requests
   against the localhost controller. Error response bodies are redacted before
   they are returned to the browser.
+- The latest IPK build also runs the action redaction test before the isolated
+  VM job installs the package.
