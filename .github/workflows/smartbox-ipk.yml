@@ -2,6 +2,11 @@ name: SmartBox experimental IPK build
 
 on:
   workflow_dispatch:
+    inputs:
+      vm_smoke:
+        description: 'Install and test IPK in an isolated OpenWrt VM'
+        type: boolean
+        default: false
   push:
     branches: [feature/sing-box-smart-adapter]
     paths:
@@ -295,3 +300,11 @@ jobs:
           name: smartbox-openwrt-x86-64-ipk-experimental
           path: /tmp/sdk/bin/packages/**/*openclash*.ipk
           if-no-files-found: error
+
+  vm-smoke:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.vm_smoke) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[vm-smoke]')) }}
+    needs: build
+    uses: ./.github/workflows/smartbox-vm.yml
+    permissions:
+      contents: read
+      actions: read

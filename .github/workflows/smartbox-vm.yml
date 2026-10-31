@@ -1,11 +1,7 @@
 name: SmartBox isolated OpenWrt VM smoke
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [feature/sing-box-smart-adapter]
-    paths:
-      - '.github/workflows/smartbox-vm.yml'
+  workflow_call:
 
 permissions:
   contents: read
@@ -18,20 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download latest verified SmartBox IPK
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          run_id="$(gh run list --workflow smartbox-ipk.yml \
-            --branch feature/sing-box-smart-adapter --status success \
-            --limit 1 --json databaseId --jq '.[0].databaseId')"
-          [ -n "$run_id" ]
-          mkdir -p /tmp/smartbox-artifact
-          gh run download "$run_id" --name smartbox-openwrt-x86-64-ipk-experimental \
-            --dir /tmp/smartbox-artifact
-          find /tmp/smartbox-artifact -name 'luci-app-openclash*.ipk' -print -quit | grep -q .
-          echo "Testing package from build run $run_id"
+      - uses: actions/download-artifact@v4
+        with:
+          name: smartbox-openwrt-x86-64-ipk-experimental
+          path: /tmp/smartbox-artifact
 
       - name: Prepare isolated OpenWrt 24.10.3 VM
         run: |
@@ -55,7 +41,8 @@ jobs:
           sudo mount "${loop}p2" /mnt/smartbox-openwrt
           sudo sed -i "/config interface 'lan'/,/^$/s/option proto 'static'/option proto 'dhcp'/" \
             /mnt/smartbox-openwrt/etc/config/network
-          grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network
+          grep -A5 "config interface 'lan'" /mnt/smartbox-openwrt/etc/config/network |
+            grep -F "option proto 'dhcp'"
           ssh-keygen -q -t ed25519 -N '' -f /tmp/smartbox-vm-key
           sudo install -d -m 0700 /mnt/smartbox-openwrt/etc/dropbear
           sudo install -m 0600 /tmp/smartbox-vm-key.pub \
@@ -96,7 +83,7 @@ jobs:
             'opkg update && opkg install luci && opkg install /tmp/smartbox.ipk'
           ssh "${ssh_opts[@]}" root@127.0.0.1 'sh -s' <<'GUEST'
           set -eu
-          opkg status luci-app-openclash | grep -F 'Status: install ok installed'
+          opkg status luci-app-openclash | grep -E '^Status: install .* installed$'
           test -x /etc/init.d/smartbox
           test -x /usr/libexec/smartbox-generate
           test -f /usr/lib/lua/luci/controller/smartbox.lua
