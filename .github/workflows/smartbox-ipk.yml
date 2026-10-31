@@ -246,6 +246,21 @@ jobs:
               exit 1
             }
           done
+          for config in /etc/config/openclash /etc/config/smartbox; do
+            tar -xOf "$CONTROL" ./conffiles | grep -Fx "$config"
+          done
+          for script in preinst postinst-pkg prerm-pkg postrm; do
+            tar -xOf "$CONTROL" "./$script" | sh -n
+          done
+          tar -xOf "$CONTROL" ./postinst-pkg | grep -F 'if [ -z "$IPKG_INSTROOT" ]'
+          tar -xOf "$CONTROL" ./prerm-pkg | grep -F 'pidof clash'
+          tar -xOf "$CONTROL" ./postrm | grep -F 'split($0, conf'
+          tar -xOf "$CONTROL" ./postrm | grep -F 'print $2'
+          tar -xOf "$CONTROL" ./postrm | grep -F '${DNSMASQ_CONF_DIR}/dnsmasq_openclash_custom_domain.conf'
+          if tar -xOf "$CONTROL" ./postrm | grep -Eq 'rm -rf /etc/(config/openclash|openclash)'; then
+            echo 'Package removal would delete OpenClash user configuration' >&2
+            exit 1
+          fi
           DATA="$(find . -maxdepth 1 -name 'data.tar.*' -print -quit)"
           [ -n "$DATA" ]
           tar -tf "$DATA" > /tmp/smartbox-manifest.txt

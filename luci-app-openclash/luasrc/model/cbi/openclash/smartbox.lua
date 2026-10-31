@@ -1,6 +1,10 @@
 local m = Map("smartbox", translate("sing-box Smart (experimental)"),
  translate("Independent localhost-only test runner. Does not change OpenClash DNS, firewall, or TUN. May run alongside OpenClash in this localhost-only mode. It does not transparently proxy LAN clients; provider URLs are confidential. Save changes before starting the service."))
 
+function m.on_after_commit(self)
+  os.execute("chmod 0600 /etc/config/smartbox")
+end
+
 local s = m:section(NamedSection, "main", "smartbox", translate("Runtime"))
 s.addremove = false
 local enabled = s:option(Flag, "enabled", translate("Enable independent service"))
