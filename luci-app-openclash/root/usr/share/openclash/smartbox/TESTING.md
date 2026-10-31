@@ -48,6 +48,7 @@ verified image.
 The VM workflow uses a single-command Python decompressor to avoid shell
 heredoc differences between runner images.
 Decompression errors are surfaced as an Actions annotation.
+The preparation step also verifies the gzip magic bytes before extraction.
 
 ## Localhost validation
 
