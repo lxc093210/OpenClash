@@ -43,7 +43,8 @@ instance; it does not connect to a physical router. Image preparation accepts
 the verified image's ext4 rootfs directly and does not require loop partition
 device creation.
 If preparation fails, the workflow publishes the failing command's line number
-as an Actions annotation.
+as an Actions annotation and uses Python's standard gzip reader for the
+verified image.
 
 ## Localhost validation
 
