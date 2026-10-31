@@ -262,6 +262,7 @@ jobs:
           done
           tar -xOf "$CONTROL" ./postinst-pkg | grep -F 'if [ -z "$IPKG_INSTROOT" ]'
           tar -xOf "$CONTROL" ./prerm-pkg | grep -F 'pidof clash'
+          tar -xOf "$CONTROL" ./prerm-pkg | grep -F '[ -z "$IPKG_INSTROOT" ]'
           tar -xOf "$CONTROL" ./prerm-pkg | grep -F '/etc/init.d/smartbox stop'
           tar -xOf "$CONTROL" ./postrm | grep -F 'split($0, conf'
           tar -xOf "$CONTROL" ./postrm | grep -F 'print $2'

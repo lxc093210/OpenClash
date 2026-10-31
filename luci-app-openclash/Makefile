@@ -108,7 +108,7 @@ define Package/$(PKG_NAME)/prerm
 #!/bin/sh
 	umask 077
 	pidof clash >/dev/null 2>&1 && /etc/init.d/openclash stop 2>/dev/null
-	[ -x /etc/init.d/smartbox ] && /etc/init.d/smartbox stop >/dev/null 2>&1
+	[ -z "$$IPKG_INSTROOT" ] && [ -x /etc/init.d/smartbox ] && /etc/init.d/smartbox stop >/dev/null 2>&1
 	if [ -f "/etc/config/openclash" ] && [ ! -f "/tmp/openclash.bak" ]; then
 		cp -f "/etc/config/openclash" "/tmp/openclash.bak" >/dev/null 2>&1
 		cp -rf "/etc/openclash" "/tmp/openclash" >/dev/null 2>&1
