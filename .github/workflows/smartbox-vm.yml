@@ -137,8 +137,11 @@ jobs:
           test -x /usr/libexec/smartbox-generate
           test -f /usr/lib/lua/luci/controller/smartbox.lua
           test -f /usr/share/licenses/luci-app-openclash/LICENSE
-          mode="$(stat -c %a /etc/config/smartbox 2>/tmp/smartbox-stat.err || true)"
-          [ "$mode" = 600 ] || { echo "::error title=SmartBox config mode mismatch::mode=$mode error=$(tr '\n' ' ' </tmp/smartbox-stat.err)"; exit 1; }
+          mode_line="$(ls -l /etc/config/smartbox)"
+          case "$mode_line" in
+            '-rw-------'*) ;;
+            *) echo "::error title=SmartBox config mode mismatch::$mode_line"; exit 1 ;;
+          esac
           uci show openclash > /tmp/openclash.before
           uci show dhcp > /tmp/dhcp.before
           uci show firewall > /tmp/firewall.before
