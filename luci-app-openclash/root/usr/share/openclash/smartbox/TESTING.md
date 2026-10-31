@@ -18,6 +18,11 @@ Actions run. Extract the artifact ZIP and transfer
 `x86_64/base/luci-app-openclash_0.48.002_all.ipk` to the test VM. Install or
 upgrade with:
 
+The workflow is maintained on `feature/sing-box-smart-adapter`. GitHub may not
+show a **Run workflow** button when a workflow exists only on a non-default
+branch; a push that changes `luci-app-openclash/` on this branch starts the
+build automatically. Do not switch to `master` to trigger or test this work.
+
 ```sh
 opkg update
 opkg install /tmp/luci-app-openclash_0.48.002_all.ipk
