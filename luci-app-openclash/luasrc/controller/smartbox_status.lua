@@ -102,7 +102,13 @@ function status_data()
     if type(key) == "string" then
       local lower_key = key:lower()
       if type(value) == "string" and lower_key:match("url") then return "[redacted URL]" end
-      if type(value) == "string" and lower_key:match("secret|token|password|authorization|credential|header") then
+      local sensitive_key = lower_key:find("secret", 1, true) or
+        lower_key:find("token", 1, true) or
+        lower_key:find("password", 1, true) or
+        lower_key:find("authorization", 1, true) or
+        lower_key:find("credential", 1, true) or
+        lower_key:find("header", 1, true)
+      if type(value) == "string" and sensitive_key then
         return "[redacted]"
       end
     end
