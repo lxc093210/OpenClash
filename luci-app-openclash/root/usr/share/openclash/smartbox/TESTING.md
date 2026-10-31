@@ -114,3 +114,5 @@ routes, so stopping it should restore the pretest network state immediately.
 - The VM also expands the image root partition and ext4 filesystem after
   resizing the disk container; the pinned Smart binary is larger than the
   stock writable root filesystem.
+- The filesystem check accepts e2fsck's documented exit code 1 when repairs
+  were applied, while still failing on uncorrected errors.

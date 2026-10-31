@@ -65,7 +65,12 @@ jobs:
           sudo partprobe "$loopdev" || true
           rootdev="${loopdev}p2"
           [ -b "$rootdev" ] || { echo "::error title=OpenWrt root partition missing::$rootdev"; exit 1; }
-          sudo e2fsck -fy "$rootdev"
+          fsck_rc=0
+          sudo e2fsck -fy "$rootdev" || fsck_rc=$?
+          [ "$fsck_rc" -le 1 ] || {
+            echo "::error title=OpenWrt root filesystem check failed::exit $fsck_rc"
+            exit "$fsck_rc"
+          }
           sudo resize2fs "$rootdev"
           sudo losetup -d "$loopdev"
           sudo mkdir -p /mnt/smartbox-openwrt
