@@ -18,6 +18,7 @@ dofile(target)
 luci.controller.smartbox_status.status_data()
 local data = require("luci.http").last
 assert(data and data.weights and data.groups and data.runtime)
+assert(data.health == "Smart API healthy\n")
 assert(#data.logs == 1)
 assert(not data.logs[1]:find("00000000000000000000000000000000", 1, true))
 assert(not data.logs[1]:find("example.invalid", 1, true))

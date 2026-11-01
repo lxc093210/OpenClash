@@ -121,6 +121,7 @@ function status_data()
   local function summary()
     local result = {
       runtime = sys.exec("/usr/libexec/smartbox-status 2>/dev/null") or "",
+      health = sys.exec("/usr/libexec/smartbox-health 2>&1") or "",
       logs = {}
     }
     local raw = sys.exec("logread 2>/dev/null | tail -n 200") or ""

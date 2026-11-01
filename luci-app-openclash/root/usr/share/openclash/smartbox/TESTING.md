@@ -80,7 +80,8 @@ trailing certificate metadata block after the gzip stream.
    that provider, and save.
 3. Confirm ports 2088 and 19090 are free and distinct. Enable the independent
    service, save, then click **Start local test**.
-4. Check LuCI > Services > SmartBox > Smart Ranking for runtime status, current
+4. Check LuCI > Services > SmartBox > Smart Ranking for runtime status, local API
+   health, current
    node, ranking and recent logs. Ranking needs actual proxied connections to
    accumulate useful data.
 5. From the test VM only, send traffic through `127.0.0.1:2088` and verify the
@@ -104,7 +105,8 @@ routes, so stopping it should restore the pretest network state immediately.
 - The package build and Smart configuration syntax are checked in GitHub
   Actions; installation and proxy traffic still need an isolated router VM.
 - UCI changes do not automatically restart procd. Use the LuCI Stop and Start
-  buttons after changing SmartBox settings.
+  buttons after changing SmartBox settings. Start waits for the localhost API
+  health check and stops the sidecar automatically if it fails.
 - No automatic Mihomo/Smart switch, global interception, Fake-IP or device
   policy handover exists yet.
 - The Smart core installer currently targets x86_64 and aarch64 releases only.

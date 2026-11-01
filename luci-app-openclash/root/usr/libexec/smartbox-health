@@ -1,0 +1,46 @@
+#!/bin/sh
+# Verify the isolated SmartBox process and its localhost controller.
+set -eu
+umask 077
+
+binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
+case "$binary" in
+  /*) ;;
+  *) echo "Invalid Smart core path" >&2; exit 1 ;;
+esac
+secret="$(uci -q get smartbox.main.api_secret || true)"
+case "$secret" in
+  ''|*[!A-Za-z0-9_-]*) echo "SmartBox API secret is not configured" >&2; exit 1 ;;
+esac
+[ "${#secret}" -ge 24 ] || { echo "SmartBox API secret is not configured" >&2; exit 1; }
+port="$(uci -q get smartbox.main.controller_port || echo 19090)"
+case "$port" in
+  ''|*[!0-9]*) echo "Invalid controller port" >&2; exit 1 ;;
+esac
+[ "$port" -ge 1 ] && [ "$port" -le 65535 ] || {
+  echo "Invalid controller port" >&2
+  exit 1
+}
+[ -x "$binary" ] || { echo "Smart core is not installed" >&2; exit 1; }
+"$binary" check -c /etc/sing-box-smart/config.json >/dev/null 2>&1 || {
+  echo "Smart configuration validation failed" >&2
+  exit 1
+}
+pidof "${binary##*/}" >/dev/null 2>&1 || {
+  echo "SmartBox process is not running" >&2
+  exit 1
+}
+
+dir=/etc/sing-box-smart
+if [ ! -d "$dir" ]; then
+  echo "SmartBox configuration directory is unavailable" >&2
+  exit 1
+fi
+chmod 0700 "$dir"
+header="$(mktemp "$dir/.health-header.XXXXXX")"
+trap 'rm -f "$header"' EXIT HUP INT TERM
+chmod 0600 "$header"
+printf 'Authorization: Bearer %s\n' "$secret" > "$header"
+curl -fsS --max-time 3 --max-filesize 65536 \
+  -H "@$header" "http://127.0.0.1:$port/smart/groups" >/dev/null
+echo "Smart API healthy"

@@ -129,7 +129,7 @@ function start.write(self, section)
     self.description = translate("Enable the independent service and save first")
     return
   end
-  local rc = os.execute("/etc/init.d/smartbox start >/dev/null 2>&1")
+  local rc = os.execute("/usr/libexec/smartbox-start >/dev/null 2>&1")
   self.description = rc == 0 and translate("Start requested; refresh status") or translate("Failed; check system log and configuration")
 end
 local stop = controls:option(Button, "_stop", translate("Stop local test"))

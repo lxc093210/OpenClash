@@ -1,0 +1,24 @@
+#!/bin/sh
+# Start SmartBox and roll it back if the local controller does not become healthy.
+set -eu
+umask 077
+
+[ "$(uci -q get smartbox.main.enabled || echo 0)" = "1" ] || {
+  echo "Enable SmartBox and save the configuration first" >&2
+  exit 1
+}
+/etc/init.d/smartbox start
+
+last_error="Smart API did not become healthy"
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if /usr/libexec/smartbox-health >/dev/null 2>&1; then
+    echo "SmartBox started and passed the local health check"
+    exit 0
+  fi
+  sleep 1
+done
+
+# A failed local start must not leave a respawning sidecar behind.
+/etc/init.d/smartbox stop >/dev/null 2>&1 || true
+echo "$last_error; SmartBox was stopped" >&2
+exit 1

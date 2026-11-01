@@ -186,8 +186,7 @@ jobs:
           /usr/libexec/smartbox-generate
           uci set smartbox.main.enabled=1
           uci commit smartbox
-          /etc/init.d/smartbox start
-          sleep 5
+          /usr/libexec/smartbox-start
           pidof sing-box-smart
           secret="$(uci -q get smartbox.main.api_secret)"
           curl -fsS --max-time 5 -H "Authorization: Bearer $secret" \
