@@ -24,13 +24,24 @@ function M.cursor()
       }
     end,
     foreach = function(_, pkg, typ, callback)
-      assert(pkg == "smartbox" and typ == "provider")
-      local url = os.getenv("MOCK_PROVIDER_URL") or "https://example.test/subscribe?token=dummy"
-      local interval = os.getenv("MOCK_INTERVAL") or "12h"
-      local tag = os.getenv("MOCK_PROVIDER_NAME") or "airport_test"
-      callback({enabled="1", name=tag, url=url, user_agent="clash", update_interval=interval})
-      if os.getenv("MOCK_DUPLICATE") == "1" then
-        callback({enabled="1", name=tag, url=url, update_interval=interval})
+      assert(pkg == "smartbox")
+      if typ == "provider" then
+        local url = os.getenv("MOCK_PROVIDER_URL") or "https://example.test/subscribe?token=dummy"
+        local interval = os.getenv("MOCK_INTERVAL") or "12h"
+        local tag = os.getenv("MOCK_PROVIDER_NAME") or "airport_test"
+        callback({enabled="1", name=tag, url=url, user_agent="clash", update_interval=interval})
+        if os.getenv("MOCK_DUPLICATE") == "1" then
+          callback({enabled="1", name=tag, url=url, update_interval=interval})
+        end
+      elseif typ == "device_policy" and os.getenv("MOCK_DEVICE_POLICY") == "1" then
+        local cidr = os.getenv("MOCK_BAD_POLICY") == "1" and "192.168.1.1/33" or "192.168.1.100/32"
+        local target = os.getenv("MOCK_BAD_POLICY") == "1" and "invalid" or "direct"
+        callback({enabled="1", source_ip_cidr=cidr, target=target})
+      elseif typ == "domain_policy" and os.getenv("MOCK_DOMAIN_POLICY") == "1" then
+        local suffix = os.getenv("MOCK_BAD_POLICY") == "1" and "bad..example" or "example.com"
+        callback({enabled="1", domain_suffix=suffix, target="reject"})
+      elseif typ ~= "device_policy" and typ ~= "domain_policy" then
+        error("unexpected SmartBox section type: " .. tostring(typ))
       end
     end
   }

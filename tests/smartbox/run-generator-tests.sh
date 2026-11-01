@@ -56,39 +56,51 @@ assert data['outbounds'][0]['tolerance']==0
 assert data['outbounds'][0]['exclude']=='(?i)剩余|到期|官网'
 assert data['experimental']['clash_api']['external_controller']=='127.0.0.1:19090'
 assert len(data['experimental']['clash_api']['secret']) >= 24
+if os.environ.get('MOCK_DEVICE_POLICY') == '1':
+    assert {'inbound':'tun-in','source_ip_cidr':'192.168.1.100/32',
+            'action':'route','outbound':'direct'} in data['route']['rules'], data['route']['rules']
+if os.environ.get('MOCK_DOMAIN_POLICY') == '1':
+    assert {'inbound':'tun-in','domain_suffix':'example.com',
+            'action':'reject'} in data['route']['rules'], data['route']['rules']
 PY
 SH
 chmod +x "$TMP/bin/"*
 export MOCK_CORE_BIN="$TMP/bin/mock-core"
 export PATH="$TMP/bin:$PATH"
 export LUA_PATH="$ROOT/tests/smartbox/mocks/?.lua;$ROOT/tests/smartbox/mocks/?/init.lua;;"
-echo '[1/8] valid provider produces validated JSON'
+echo '[1/10] valid provider produces validated JSON'
 "$TMP/generate" >/dev/null
 test -s "$TMP/state/config.json"
-echo '[2/8] global mode produces official TUN and DNS fields'
+echo '[2/10] global mode produces official TUN and DNS fields'
 MOCK_MODE=global "$TMP/generate" >/dev/null
 MOCK_MODE=global MOCK_AUTO_REDIRECT=1 "$TMP/generate" >/dev/null
-echo '[3/8] insecure HTTP subscriptions rejected'
+echo '[3/10] global device and domain policies produce route actions'
+MOCK_MODE=global MOCK_DEVICE_POLICY=1 MOCK_DOMAIN_POLICY=1 "$TMP/generate" >/dev/null
+echo '[4/10] invalid Smart policies rejected'
+if MOCK_MODE=global MOCK_DEVICE_POLICY=1 MOCK_DOMAIN_POLICY=1 MOCK_BAD_POLICY=1 "$TMP/generate" >/dev/null 2>&1; then
+  echo "ERROR: invalid Smart policy was accepted"; exit 1
+fi
+echo '[5/10] insecure HTTP subscriptions rejected'
 if MOCK_PROVIDER_URL='http://example.test/unsafe' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: HTTP URL was accepted"; exit 1
 fi
-echo '[4/8] short API secret rejected'
+echo '[6/10] short API secret rejected'
 if MOCK_SECRET='abc' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: short API secret was accepted"; exit 1
 fi
-echo '[5/8] duplicate providers rejected'
+echo '[7/10] duplicate providers rejected'
 if MOCK_DUPLICATE=1 "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: duplicate provider was accepted"; exit 1
 fi
-echo '[6/8] invalid update interval rejected'
+echo '[8/10] invalid update interval rejected'
 if MOCK_INTERVAL='1m' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid interval was accepted"; exit 1
 fi
-echo '[7/8] invalid Smart probe status rejected'
+echo '[9/10] invalid Smart probe status rejected'
 if MOCK_EXPECTED_STATUS='not-a-status' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid probe status was accepted"; exit 1
 fi
-echo '[8/8] invalid Smart sample rate rejected'
+echo '[10/10] invalid Smart sample rate rejected'
 if MOCK_SAMPLE_RATE='0' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid sample rate was accepted"; exit 1
 fi

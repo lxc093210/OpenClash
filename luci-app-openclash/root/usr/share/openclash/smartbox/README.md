@@ -9,12 +9,12 @@ Smart binary is supplied separately; no untrusted binary is bundled here.
 The current implementation includes the LuCI route, HTTPS provider validation,
 secret protection, pinned core installation and rollback, runtime start/stop,
 post-start local health checking with automatic stop-on-failure, watchdog recovery,
-Smart API ranking,
-package checks and isolated VM smoke-test workflow. Global mode is experimental
-and must be tested in an isolated router before use on a production router. It
-does not translate OpenClash's existing YAML rule and device-policy database
-yet; those policies remain available on the Mihomo side and are not silently
-discarded.
+Smart API ranking, package checks and isolated VM smoke-test workflow. Global
+mode is experimental and must be tested in an isolated router before use on a
+production router. It accepts explicit SmartBox device IPv4 CIDR and
+domain-suffix policies from LuCI. Existing OpenClash YAML rules and its
+device-policy database are not imported automatically; those policies remain
+available on the Mihomo side and are not silently discarded.
 
 The ranking page reports both the process state and a localhost API health check.
 The start control waits for that health check and stops the sidecar if it does not

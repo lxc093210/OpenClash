@@ -2,7 +2,7 @@
 
 Use an isolated OpenWrt 24.10.x or matching ImmortalWrt x86_64 test VM. This
 branch has only been packaged with the OpenWrt 24.10.3 x86_64 SDK. Router-wide
-Global TUN handover is experimental and policy conversion is not complete. Do
+Global TUN handover is experimental. Do
 not enable global mode on a production router; start with localhost sidecar
 mode in an isolated VM.
 
@@ -114,9 +114,11 @@ startup, a failed post-start health check, or when stopped through LuCI.
 - UCI changes do not automatically restart procd. Use the LuCI Stop and Start
   buttons after changing SmartBox settings. Start waits for the localhost API
   health check and stops the sidecar automatically if it fails.
-- Global TUN interception is experimental; OpenClash YAML domain rules,
-  device-level policies and Mihomo Fake-IP state are not converted into Smart
-  rules yet. Use sidecar mode when those existing policies are required.
+- Global TUN interception is experimental. SmartBox device IPv4 CIDR and
+  domain-suffix policies are available in LuCI and are validated before the
+  route is generated. Existing OpenClash YAML rules, the OpenClash device
+  policy database and Mihomo Fake-IP state are not imported automatically;
+  use sidecar mode when those existing policies are required.
 - The Smart core installer currently targets x86_64 and aarch64 releases only.
 - VM failures in the pinned Smart core installation step include the final
   installer lines in a sanitized CI annotation, covering download, checksum,

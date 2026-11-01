@@ -109,6 +109,43 @@ if mode == "global" then
     {inbound="tun-in", action="sniff"},
     {inbound="tun-in", protocol="dns", action="hijack-dns"}
   }
+  local policy_count, policy_seen = 0, {}
+  local function add_policy(kind, value, target)
+    policy_count = policy_count + 1
+    assert(policy_count <= 100, "too many Smart routing policies")
+    assert(target == "auto" or target == "direct" or target == "reject",
+      "invalid Smart routing target")
+    local key = kind .. ":" .. value
+    assert(not policy_seen[key], "duplicate Smart routing policy")
+    policy_seen[key] = true
+    local rule = {inbound="tun-in", [kind]=value}
+    if target == "reject" then
+      rule.action = "reject"
+    else
+      rule.action, rule.outbound = "route", target
+    end
+    route.rules[#route.rules+1] = rule
+  end
+  uci:foreach("smartbox", "device_policy", function(p)
+    if p.enabled == "1" then
+      local cidr = p.source_ip_cidr or ""
+      local a,b,c,d,prefix = cidr:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+      assert(a and tonumber(a) <= 255 and tonumber(b) <= 255 and
+        tonumber(c) <= 255 and tonumber(d) <= 255 and tonumber(prefix) <= 32,
+        "invalid Smart device CIDR")
+      add_policy("source_ip_cidr", cidr, p.target)
+    end
+  end)
+  uci:foreach("smartbox", "domain_policy", function(p)
+    if p.enabled == "1" then
+      local domain = (p.domain_suffix or ""):lower()
+      assert(#domain >= 1 and #domain <= 253 and
+        domain:match("^[a-z0-9][a-z0-9.%-]*[a-z0-9]$") and
+        not domain:find("%.%.") and not domain:find("%.%-") and
+        not domain:find("%-%."), "invalid Smart domain suffix")
+      add_policy("domain_suffix", domain, p.target)
+    end
+  end)
   obj.dns = {
     servers={{type="https", tag="smart-doh", server="1.1.1.1",
       server_port=443, path="/dns-query"}},

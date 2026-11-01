@@ -142,6 +142,50 @@ function interval.validate(self, value)
  return nil, translate("Use an interval of at least 1 hour, for example 1h or 12h")
 end
 
+local device = m:section(TypedSection, "device_policy", translate("Smart device policies"),
+ translate("Global TUN mode only. The first matching device policy wins; use a stable DHCP address for each device."))
+device.anonymous = true
+device.addremove = true
+device.sortable = true
+local device_enabled = device:option(Flag, "enabled", translate("Enabled"))
+device_enabled.default = "0"
+local source_ip = device:option(Value, "source_ip_cidr", translate("Device IPv4 CIDR"))
+source_ip.rmempty = false
+source_ip.placeholder = "192.168.1.100/32"
+function source_ip.validate(self, value)
+ local a,b,c,d,prefix = value and value:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+ if a and tonumber(a) <= 255 and tonumber(b) <= 255 and
+   tonumber(c) <= 255 and tonumber(d) <= 255 and tonumber(prefix) <= 32 then return value end
+ return nil, translate("Use an IPv4 CIDR such as 192.168.1.100/32")
+end
+local device_target = device:option(ListValue, "target", translate("Route"))
+device_target:value("auto", translate("Smart selection"))
+device_target:value("direct", translate("Direct"))
+device_target:value("reject", translate("Reject"))
+device_target.default = "auto"
+
+local domain = m:section(TypedSection, "domain_policy", translate("Smart domain policies"),
+ translate("Global TUN mode only. Device policies take precedence over these suffix rules."))
+domain.anonymous = true
+domain.addremove = true
+domain.sortable = true
+local domain_enabled = domain:option(Flag, "enabled", translate("Enabled"))
+domain_enabled.default = "0"
+local suffix = domain:option(Value, "domain_suffix", translate("Domain suffix"))
+suffix.rmempty = false
+suffix.placeholder = "example.com"
+function suffix.validate(self, value)
+ value = value and value:lower()
+ if value and #value <= 253 and value:match("^[a-z0-9][a-z0-9.%-]*[a-z0-9]$") and
+   not value:find("%.%.") and not value:find("%.%-") and not value:find("%-%.") then return value end
+ return nil, translate("Use an ASCII or punycode domain suffix such as example.com")
+end
+local domain_target = domain:option(ListValue, "target", translate("Route"))
+domain_target:value("auto", translate("Smart selection"))
+domain_target:value("direct", translate("Direct"))
+domain_target:value("reject", translate("Reject"))
+domain_target.default = "auto"
+
 local controls = m:section(SimpleSection)
 local core = controls:option(DummyValue, "_core", translate("Smart core"))
 function core.cfgvalue(self, section)

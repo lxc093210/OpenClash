@@ -48,6 +48,10 @@ jobs:
           grep -q 'type="tun"' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'action="resolve"' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'action="sniff"' luci-app-openclash/root/usr/libexec/smartbox-generate
+          grep -q 'source_ip_cidr' luci-app-openclash/root/usr/libexec/smartbox-generate
+          grep -q 'domain_suffix' luci-app-openclash/root/usr/libexec/smartbox-generate
+          grep -q 'Smart device policies' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          grep -q 'Smart domain policies' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
           ! grep -q 'sniff_override_destination' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'handover.active' luci-app-openclash/root/etc/init.d/smartbox
           grep -q 'requires smartbox-start handover' luci-app-openclash/root/etc/init.d/smartbox
