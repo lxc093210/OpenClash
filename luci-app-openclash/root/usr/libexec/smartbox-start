@@ -26,7 +26,8 @@ case "$mode" in
         exit 1
       }
     else
-      rm -f /etc/sing-box-smart/handover.active
+      printf '%s\n' ready > /etc/sing-box-smart/handover.active
+      chmod 0600 /etc/sing-box-smart/handover.active
     fi
     ;;
   *) echo "Invalid SmartBox traffic mode" >&2; exit 1 ;;
