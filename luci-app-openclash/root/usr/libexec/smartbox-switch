@@ -1,0 +1,92 @@
+#!/bin/sh
+# Switch the global traffic owner without allowing both cores to own the router.
+set -eu
+umask 077
+
+target="${1:-}"
+case "$target" in
+  mihomo|smart) ;;
+  *) echo "Usage: smartbox-switch mihomo|smart" >&2; exit 2 ;;
+esac
+
+LOCK=/var/lock/smartbox-switch.lock
+mkdir -p /var/lock
+mkdir "$LOCK" 2>/dev/null || {
+  echo "A kernel switch is already in progress" >&2
+  exit 1
+}
+trap 'rmdir "$LOCK"' EXIT HUP INT TERM
+
+old_mode="$(uci -q get smartbox.main.mode || echo sidecar)"
+old_enabled="$(uci -q get smartbox.main.enabled || echo 0)"
+openclash_enabled="$(uci -q get openclash.config.enable || echo 0)"
+old_running=0
+pidof sing-box-smart >/dev/null 2>&1 && old_running=1
+
+restore_mode() {
+  uci set "smartbox.main.mode=$old_mode"
+  uci commit smartbox
+}
+
+restore_smart() {
+  restore_mode
+  [ "$old_enabled" = "1" ] && [ "$old_running" = "1" ] || return 0
+  /usr/libexec/smartbox-start >/dev/null 2>&1 ||
+    logger -t smartbox "Failed to restore SmartBox after Mihomo switch failure"
+}
+
+switch_to_smart() {
+  [ "$old_enabled" = "1" ] || {
+    echo "Enable SmartBox and save the configuration first" >&2
+    return 1
+  }
+
+  if [ "$old_mode" = "global" ] && [ -f /etc/sing-box-smart/handover.active ] &&
+     /usr/libexec/smartbox-health >/dev/null 2>&1; then
+    echo "sing-box Smart is already the global owner"
+    return 0
+  fi
+  /etc/init.d/smartbox stop >/dev/null 2>&1 || true
+  uci set smartbox.main.mode=global
+  uci commit smartbox
+  if ! /usr/libexec/smartbox-start; then
+    restore_mode
+    if [ "$old_running" = "1" ] && [ "$old_mode" = "sidecar" ]; then
+      /usr/libexec/smartbox-start >/dev/null 2>&1 ||
+        logger -t smartbox "Failed to restore SmartBox sidecar after switch failure"
+    fi
+    echo "SmartBox failed to start; previous mode restored" >&2
+    return 1
+  fi
+}
+
+switch_to_mihomo() {
+  # smartbox-stop restores Mihomo when Smart had the global handover marker.
+  /usr/libexec/smartbox-stop
+  if [ "$old_mode" = "global" ] && [ "$openclash_enabled" = "1" ] &&
+     ! (pidof clash >/dev/null 2>&1 || pidof clash_meta >/dev/null 2>&1 ||
+        pidof mihomo >/dev/null 2>&1); then
+    echo "Mihomo did not become ready; restoring sing-box Smart" >&2
+    restore_smart
+    return 1
+  fi
+  uci set smartbox.main.mode=sidecar
+  uci commit smartbox
+
+  # Sidecar mode never owns firewall/DNS, but it still must not remain active
+  # while the user explicitly selects Mihomo as the active kernel.
+  if [ "$old_mode" != "global" ] && [ "$openclash_enabled" = "1" ]; then
+    if ! /etc/init.d/openclash start >/dev/null 2>&1; then
+      echo "Mihomo failed to start; restoring sing-box Smart" >&2
+      restore_smart
+      return 1
+    fi
+  fi
+}
+
+case "$target" in
+  smart) switch_to_smart ;;
+  mihomo) switch_to_mihomo ;;
+esac
+
+echo "Global kernel switched to $target"

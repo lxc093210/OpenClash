@@ -277,6 +277,12 @@ jobs:
           uci commit smartbox
           /usr/libexec/smartbox-start
           pidof sing-box-smart
+          /usr/libexec/smartbox-switch smart
+          [ "$(uci -q get smartbox.main.mode)" = "global" ]
+          test -f /etc/sing-box-smart/handover.active
+          /usr/libexec/smartbox-switch mihomo
+          [ "$(uci -q get smartbox.main.mode)" = "sidecar" ]
+          test ! -f /etc/sing-box-smart/handover.active
           /etc/init.d/smartbox stop
           uci show openclash > /tmp/openclash.after
           uci show dhcp > /tmp/dhcp.after

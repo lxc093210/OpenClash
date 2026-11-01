@@ -233,6 +233,32 @@ ip_target:value("reject", translate("Reject"))
 ip_target.default = "auto"
 
 local controls = m:section(SimpleSection)
+local owner = controls:option(DummyValue, "_owner", translate("Active kernel"))
+function owner.cfgvalue(self, section)
+  local sys = require("luci.sys")
+  if sys.call("pidof sing-box-smart >/dev/null 2>&1") == 0 then
+    return translate("sing-box Smart")
+  end
+  if sys.call("pidof clash >/dev/null 2>&1") == 0 or
+     sys.call("pidof clash_meta >/dev/null 2>&1") == 0 then
+    return translate("Mihomo")
+  end
+  return translate("Stopped")
+end
+local switch_smart = controls:option(Button, "_switch_smart", translate("Switch global kernel to sing-box Smart"))
+switch_smart.inputstyle = "apply"
+function switch_smart.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-switch smart >/dev/null 2>&1")
+  self.description = rc == 0 and translate("sing-box Smart is now the global kernel") or
+    translate("Switch failed; previous kernel was restored where possible")
+end
+local switch_mihomo = controls:option(Button, "_switch_mihomo", translate("Switch global kernel to Mihomo"))
+switch_mihomo.inputstyle = "reset"
+function switch_mihomo.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-switch mihomo >/dev/null 2>&1")
+  self.description = rc == 0 and translate("Mihomo is now the global kernel") or
+    translate("Switch failed; sing-box Smart was restored where possible")
+end
 local core = controls:option(DummyValue, "_core", translate("Smart core"))
 function core.cfgvalue(self, section)
   local uci = require("luci.model.uci").cursor()

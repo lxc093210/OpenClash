@@ -283,6 +283,7 @@ jobs:
             usr/libexec/smartbox-health \
             usr/libexec/smartbox-start \
             usr/libexec/smartbox-stop \
+            usr/libexec/smartbox-switch \
             usr/libexec/smartbox-watchdog \
             usr/lib/lua/luci/controller/smartbox.lua \
             usr/lib/lua/luci/view/openclash/smartbox_status.htm \
@@ -299,11 +300,12 @@ jobs:
             $NF == "./etc/init.d/smartbox" || $NF == "./usr/libexec/smartbox-generate" ||
             $NF == "./usr/libexec/smartbox-core-install" || $NF == "./usr/libexec/smartbox-core-rollback" ||
             $NF == "./usr/libexec/smartbox-health" || $NF == "./usr/libexec/smartbox-start" ||
-            $NF == "./usr/libexec/smartbox-stop" || $NF == "./usr/libexec/smartbox-watchdog" {
+            $NF == "./usr/libexec/smartbox-stop" || $NF == "./usr/libexec/smartbox-switch" ||
+            $NF == "./usr/libexec/smartbox-watchdog" {
               if ($1 != "-rwxr-xr-x") exit 1
               count++
             }
-            END { if (count != 8) exit 1 }
+            END { if (count != 9) exit 1 }
           '
           echo 'SmartBox package files verified'
 

@@ -22,6 +22,12 @@ DOMAIN, DOMAIN-SUFFIX, DOMAIN-KEYWORD, IP-CIDR and SRC-IP-CIDR entries. It
 never rewrites the source YAML and reports how many unsupported entries were
 skipped.
 
+The settings page also provides explicit global-kernel buttons. Switching to
+sing-box Smart stops a running sidecar first, changes to global mode, and runs
+the health check before reporting success. Switching to Mihomo stops SmartBox,
+clears the handover marker, and starts OpenClash when it was enabled. A lock
+prevents concurrent switches; a failed Smart start restores the previous mode.
+
 The ranking page reports both the process state and a localhost API health check.
 The start control waits for that health check and stops the sidecar if it does not
 become healthy, so a failed Smart start does not leave a respawning process behind.

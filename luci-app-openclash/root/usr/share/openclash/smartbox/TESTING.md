@@ -92,6 +92,9 @@ trailing certificate metadata block after the gzip stream.
    Start control. Verify that OpenClash stops before the `smarttun` interface
    appears, that stopping SmartBox restores OpenClash, and that terminating the
    Smart process causes the watchdog to restore OpenClash automatically.
+8. Use the kernel buttons to switch `sing-box Smart -> Mihomo -> sing-box Smart`.
+   Confirm the handover marker is absent for Mihomo and is recreated only after
+   Smart passes its health check.
 
 Do not publish `/etc/config/smartbox`, generated JSON, subscription URLs, API
 secrets or unredacted core logs.

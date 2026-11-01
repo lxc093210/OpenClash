@@ -46,6 +46,8 @@ jobs:
           ! grep -E 'iptables -|nft add|uci commit firewall|ip rule add' luci-app-openclash/root/etc/init.d/smartbox
           grep -q '/usr/libexec/smartbox-health' luci-app-openclash/root/usr/libexec/smartbox-start
           grep -q '/usr/libexec/smartbox-stop' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          grep -q '/usr/libexec/smartbox-switch' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          grep -q 'Global kernel switched' luci-app-openclash/root/usr/libexec/smartbox-switch
           grep -q 'type="tun"' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'action="resolve"' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'action="sniff"' luci-app-openclash/root/usr/libexec/smartbox-generate
