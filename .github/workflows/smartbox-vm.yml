@@ -209,7 +209,13 @@ jobs:
             cat /tmp/smartbox-global-generate.log
             exit 1
           fi
-          /usr/libexec/smartbox-start
+          if ! /usr/libexec/smartbox-start >/tmp/smartbox-global-start.log 2>&1; then
+            start_error="$(tail -n 8 /tmp/smartbox-global-start.log | tr '\n' ' ')"
+            echo "::error title=SmartBox global start failed::$start_error"
+            core_error="$(logread -e sing-box-smart | grep -E 'FATAL|ERROR|failed' | tail -n 3 | sed "s/$secret/[redacted]/g" | tr '\n' ' ' || true)"
+            [ -z "$core_error" ] || echo "::error title=Smart core runtime error::$core_error"
+            exit 1
+          fi
           pidof sing-box-smart
           test -f /etc/sing-box-smart/handover.active
           kill "$(pidof sing-box-smart | awk '{print $1}')"
