@@ -37,6 +37,10 @@ function tun_address.validate(self, value)
  if value and value:match("^[0-9%.]+/[0-9]+$") then return value end
  return nil, translate("Use an IPv4 CIDR address, for example 172.19.0.1/30")
 end
+local auto_redirect = s:option(Flag, "tun_auto_redirect", translate("TUN auto redirect"))
+auto_redirect.default = "0"
+auto_redirect:depends("mode", "global")
+auto_redirect.description = translate("Requires kernel nfqueue support; startup rolls back if the router cannot enable it")
 local controller = s:option(Value, "controller_port", translate("Local controller port"))
 controller.datatype = "port"
 controller.default = "19090"
@@ -178,11 +182,11 @@ function status.cfgvalue(self, section)
   local bin = require("luci.model.uci").cursor():get("smartbox", "main", "binary") or "/usr/bin/sing-box-smart"
   local name = bin:match("^/[A-Za-z0-9_./-]+$") and bin:match("/([^/]+)$") or "sing-box-smart"
   if os.execute("pidof " .. require("luci.util").shellquote(name) .. " >/dev/null 2>&1") == 0 then
-    return translate("Running (local test)")
+    return translate("Running")
   end
   return translate("Stopped")
 end
-local start = controls:option(Button, "_start", translate("Start local test"))
+local start = controls:option(Button, "_start", translate("Start SmartBox"))
 start.inputstyle = "apply"
 function start.write(self, section)
   if require("luci.model.uci").cursor():get("smartbox", "main", "enabled") ~= "1" then
@@ -192,7 +196,7 @@ function start.write(self, section)
   local rc = os.execute("/usr/libexec/smartbox-start >/dev/null 2>&1")
   self.description = rc == 0 and translate("Start requested; refresh status") or translate("Failed; check system log and configuration")
 end
-local stop = controls:option(Button, "_stop", translate("Stop local test"))
+local stop = controls:option(Button, "_stop", translate("Stop SmartBox"))
 stop.inputstyle = "reset"
 function stop.write(self, section)
   os.execute("/usr/libexec/smartbox-stop >/dev/null 2>&1")

@@ -20,12 +20,13 @@ cat > "$TMP/bin/mock-core" <<'SH'
 #!/bin/sh
 [ "$1" = check ] && [ "$2" = -c ] || exit 1
 python3 - "$3" <<'PY'
-import json,sys
+import json,os,sys
 data=json.load(open(sys.argv[1]))
 if data['inbounds'][0].get('type') == 'tun':
     tun=data['inbounds'][0]
     assert tun['interface_name']=='smarttun', tun
-    assert tun['auto_route'] is True and tun['auto_redirect'] is True, tun
+    assert tun['auto_route'] is True, tun
+    assert tun['auto_redirect'] is (os.environ.get('MOCK_AUTO_REDIRECT') == '1'), tun
     assert tun['dns_mode']=='hijack', tun
     assert 'sniff' not in tun and 'sniff_override_destination' not in tun, tun
     assert data['route']['auto_detect_interface'] is True, data['route']
@@ -43,6 +44,7 @@ assert data['providers'][0]['tag']=='airport_test'
 assert data['providers'][0]['http_client']=='fetch-airport_test'
 assert 'user_agent' not in data['providers'][0]
 assert data['http_clients'][1]['headers']['User-Agent']=='clash'
+assert all('detour' not in client for client in data['http_clients']), data['http_clients']
 assert data['outbounds'][0]['type']=='smart'
 assert data['outbounds'][0]['providers']==['airport_test']
 assert data['outbounds'][0]['use_lightgbm'] is True
@@ -65,6 +67,7 @@ echo '[1/8] valid provider produces validated JSON'
 test -s "$TMP/state/config.json"
 echo '[2/8] global mode produces official TUN and DNS fields'
 MOCK_MODE=global "$TMP/generate" >/dev/null
+MOCK_MODE=global MOCK_AUTO_REDIRECT=1 "$TMP/generate" >/dev/null
 echo '[3/8] insecure HTTP subscriptions rejected'
 if MOCK_PROVIDER_URL='http://example.test/unsafe' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: HTTP URL was accepted"; exit 1

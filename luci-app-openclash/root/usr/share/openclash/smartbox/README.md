@@ -2,7 +2,8 @@
 
 This adapter is intentionally opt-in. The default sidecar mode is localhost
 only; an explicitly selected global mode uses sing-box's documented Linux TUN
-auto-route/auto-redirect and takes over only after stopping OpenClash. The
+auto-route and takes over only after stopping OpenClash. Auto-redirect is
+optional because it requires kernel nfqueue support. The
 Smart binary is supplied separately; no untrusted binary is bundled here.
 
 The current implementation includes the LuCI route, HTTPS provider validation,

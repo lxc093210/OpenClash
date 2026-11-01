@@ -80,7 +80,7 @@ trailing certificate metadata block after the gzip stream.
    disposable HTTPS subscription for this test, give it a unique name, enable
    that provider, and save.
 3. Confirm ports 2088 and 19090 are free and distinct. Enable the independent
-   service, save, then click **Start local test**.
+   service, save, then click **Start SmartBox**.
 4. Check LuCI > Services > SmartBox > Smart Ranking for runtime status, local API
    health, current
    node, ranking and recent logs. Ranking needs actual proxied connections to
@@ -103,7 +103,8 @@ Smart core**. For a failed package upgrade, run `/etc/init.d/smartbox stop` and
 reinstall the previous OpenClash IPK with `opkg install --force-reinstall`.
 Restore the backed-up OpenClash config and directory if needed, then restart
 OpenClash. Sidecar mode does not alter DNS, firewall or routes. Global mode
-relies on sing-box `auto_redirect` and restores OpenClash on an unsuccessful
+uses sing-box TUN `auto_route`; optional `auto_redirect` requires kernel nfqueue
+support. It restores OpenClash on an unsuccessful
 startup, a failed post-start health check, or when stopped through LuCI.
 
 ## Remaining limits

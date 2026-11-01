@@ -48,7 +48,7 @@ local exclude_pattern = bounded_text(cfg.exclude_pattern, "", 512)
 local policy_priority = bounded_text(cfg.policy_priority, "", 512)
 local tolerance = number(cfg.tolerance, 0, 0, 65535)
 local sample_rate = number(cfg.sample_rate, 0.25, 0.01, 1)
-local providers, tags, seen, clients = {}, {}, {}, {{tag="fetch", detour="direct"}}
+local providers, tags, seen, clients = {}, {}, {}, {{tag="fetch"}}
 uci:foreach("smartbox", "provider", function(p)
   if p.enabled == "1" then
     local tag, url = p.name or "", p.url or ""
@@ -66,7 +66,7 @@ uci:foreach("smartbox", "provider", function(p)
     if user_agent ~= "" then
       client_tag = "fetch-" .. tag
       clients[#clients+1] = {
-        tag=client_tag, detour="direct",
+        tag=client_tag,
         headers={ ["User-Agent"] = user_agent }
       }
     end
@@ -100,7 +100,8 @@ local obj = {
 }
 if mode == "global" then
   inbounds = {{type="tun", tag="tun-in", interface_name=tun_interface,
-    address={tun_address}, auto_route=true, auto_redirect=true,
+    address={tun_address}, auto_route=true,
+    auto_redirect=flag(cfg.tun_auto_redirect, "0"),
     strict_route=true, dns_mode="hijack"}}
   route.auto_detect_interface = true
   route.rules = {
