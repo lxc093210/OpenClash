@@ -12,6 +12,7 @@ on:
     paths:
       - 'luci-app-openclash/**'
       - '.github/workflows/smartbox-ipk.yml'
+      - '.github/workflows/smartbox-vm.yml'
 
 permissions:
   contents: read
