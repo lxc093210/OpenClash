@@ -5437,3 +5437,396 @@ msgstr "恢复默认配置"
 
 msgid "Start Test"
 msgstr "开始测试"
+
+msgid "sing-box Smart (experimental)"
+msgstr "sing-box Smart（实验性）"
+
+msgid "Runtime"
+msgstr "运行时"
+
+msgid "Enable independent service"
+msgstr "启用独立服务"
+
+msgid "Traffic mode"
+msgstr "流量模式"
+
+msgid "Localhost sidecar (safe default)"
+msgstr "本机旁路模式（安全默认值）"
+
+msgid "Global TUN proxy (experimental)"
+msgstr "全局 TUN 代理（实验性）"
+
+msgid "Global mode stops OpenClash before takeover and restores it when SmartBox stops or startup fails. Test in an isolated router first."
+msgstr "全局模式接管前会停止 OpenClash，SmartBox 停止或启动失败时会恢复。请先在隔离路由器中测试。"
+
+msgid "Smart binary path"
+msgstr "Smart 内核路径"
+
+msgid "Use an absolute executable path without spaces or shell characters"
+msgstr "请输入不含空格或 Shell 特殊字符的绝对可执行文件路径"
+
+msgid "Local mixed proxy port"
+msgstr "本地混合代理端口"
+
+msgid "Smart TUN interface"
+msgstr "Smart TUN 接口"
+
+msgid "Use a Linux interface name up to 15 characters"
+msgstr "请输入不超过 15 个字符的 Linux 接口名"
+
+msgid "Smart TUN address"
+msgstr "Smart TUN 地址"
+
+msgid "Use an IPv4 CIDR address, for example 172.19.0.1/30"
+msgstr "请输入 IPv4 CIDR 地址，例如 172.19.0.1/30"
+
+msgid "TUN auto redirect"
+msgstr "TUN 自动转发"
+
+msgid "Requires kernel nfqueue support; startup rolls back if the router cannot enable it"
+msgstr "需要内核支持 nfqueue；路由器无法启用时启动会自动回滚"
+
+msgid "Smart Fake-IP"
+msgstr "Smart Fake-IP"
+
+msgid "Return sing-box Fake-IP addresses for A/AAAA queries; use the reserved ranges below"
+msgstr "为 A/AAAA 查询返回 sing-box Fake-IP 地址；请使用下面的保留地址段"
+
+msgid "Fake-IP IPv4 range"
+msgstr "Fake-IP IPv4 地址段"
+
+msgid "Use a valid IPv4 CIDR, for example 198.18.0.0/15"
+msgstr "请输入有效的 IPv4 CIDR，例如 198.18.0.0/15"
+
+msgid "Fake-IP IPv6 range"
+msgstr "Fake-IP IPv6 地址段"
+
+msgid "Use a valid IPv6 CIDR, for example 2001:2::/48"
+msgstr "请输入有效的 IPv6 CIDR，例如 2001:2::/48"
+
+msgid "Local controller port"
+msgstr "本地控制器端口"
+
+msgid "Smart probe URL"
+msgstr "Smart 探测 URL"
+
+msgid "Use an HTTPS probe URL"
+msgstr "请输入 HTTPS 探测 URL"
+
+msgid "Expected probe status"
+msgstr "预期探测状态码"
+
+msgid "Use a status code, range, or slash-separated status codes"
+msgstr "请输入状态码、范围或用斜线分隔的状态码"
+
+msgid "Prefer ASN grouping"
+msgstr "优先使用 ASN 分组"
+
+msgid "Reuse quality data for destinations on the same network"
+msgstr "复用同一网络目标的质量数据"
+
+msgid "Delay tolerance (ms)"
+msgstr "延迟容差（毫秒）"
+
+msgid "Learning sample rate"
+msgstr "学习采样率"
+
+msgid "Use a value between 0.01 and 1"
+msgstr "请输入 0.01 到 1 之间的值"
+
+msgid "Collect Smart training data"
+msgstr "收集 Smart 训练数据"
+
+msgid "Use LightGBM quality model"
+msgstr "使用 LightGBM 质量模型"
+
+msgid "Exclude node pattern"
+msgstr "排除节点匹配规则"
+
+msgid "Use at most 512 characters without control characters"
+msgstr "最多输入 512 个字符，不能包含控制字符"
+
+msgid "Node priority rules"
+msgstr "节点优先级规则"
+
+msgid "API secret"
+msgstr "API 密钥"
+
+msgid "Required to start: a random token with at least 24 characters. You can generate it below."
+msgstr "启动必需：至少 24 个字符的随机令牌。可以使用下面的按钮生成。"
+
+msgid "Use at least 24 letters, numbers, underscore or hyphen characters"
+msgstr "请输入至少 24 个字母、数字、下划线或连字符"
+
+msgid "Generate API secret"
+msgstr "生成 API 密钥"
+
+msgid "Generation failed; check system log."
+msgstr "生成失败，请检查系统日志。"
+
+msgid "HTTPS subscriptions"
+msgstr "HTTPS 订阅"
+
+msgid "Unique name"
+msgstr "唯一名称"
+
+msgid "Use only letters, numbers, underscore or hyphen characters"
+msgstr "只能使用字母、数字、下划线或连字符"
+
+msgid "An HTTPS URL is required"
+msgstr "必须使用 HTTPS URL"
+
+msgid "Subscription User-Agent"
+msgstr "订阅 User-Agent"
+
+msgid "Optional header used by providers that require a Clash-compatible client identifier"
+msgstr "部分机场要求兼容 Clash 的客户端标识时使用的可选请求头"
+
+msgid "Use at most 200 characters without control characters"
+msgstr "最多输入 200 个字符，不能包含控制字符"
+
+msgid "Refresh interval"
+msgstr "刷新间隔"
+
+msgid "Use an interval of at least 1 hour, for example 1h or 12h"
+msgstr "间隔至少 1 小时，例如 1h 或 12h"
+
+msgid "Smart device policies"
+msgstr "Smart 设备策略"
+
+msgid "Global TUN mode only. The first matching device policy wins; use a stable DHCP address for each device."
+msgstr "仅适用于全局 TUN 模式。第一条匹配的设备策略优先；请为每台设备使用固定 DHCP 地址。"
+
+msgid "Device IPv4 CIDR"
+msgstr "设备 IPv4 CIDR"
+
+msgid "Use an IPv4 CIDR such as 192.168.1.100/32"
+msgstr "请输入 IPv4 CIDR，例如 192.168.1.100/32"
+
+msgid "Route"
+msgstr "路由"
+
+msgid "Smart selection"
+msgstr "Smart 智能选择"
+
+msgid "Reject"
+msgstr "拒绝"
+
+msgid "Smart domain policies"
+msgstr "Smart 域名策略"
+
+msgid "Global TUN mode only. Device policies take precedence over these suffix rules."
+msgstr "仅适用于全局 TUN 模式。设备策略优先于这些后缀规则。"
+
+msgid "Domain suffix"
+msgstr "域名后缀"
+
+msgid "Use an ASCII or punycode domain suffix such as example.com"
+msgstr "请输入 ASCII 或 punycode 域名后缀，例如 example.com"
+
+msgid "Match type"
+msgstr "匹配类型"
+
+msgid "Exact domain"
+msgstr "精确域名"
+
+msgid "Domain keyword"
+msgstr "域名关键词"
+
+msgid "Smart IP policies"
+msgstr "Smart IP 策略"
+
+msgid "Global TUN mode only. Imported IP-CIDR rules are kept separate from device policies."
+msgstr "仅适用于全局 TUN 模式。导入的 IP-CIDR 规则与设备策略分开保存。"
+
+msgid "Destination IP CIDR"
+msgstr "目标 IP CIDR"
+
+msgid "Use an IPv4 or IPv6 CIDR"
+msgstr "请输入 IPv4 或 IPv6 CIDR"
+
+msgid "Active kernel"
+msgstr "当前内核"
+
+msgid "sing-box Smart"
+msgstr "sing-box Smart"
+
+msgid "Mihomo"
+msgstr "Mihomo"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Switch global kernel to sing-box Smart"
+msgstr "将全局内核切换为 sing-box Smart"
+
+msgid "sing-box Smart is now the global kernel"
+msgstr "sing-box Smart 已成为全局内核"
+
+msgid "Switch failed; previous kernel was restored where possible"
+msgstr "切换失败，已尽可能恢复之前的内核"
+
+msgid "Switch global kernel to Mihomo"
+msgstr "将全局内核切换为 Mihomo"
+
+msgid "Mihomo is now the global kernel"
+msgstr "Mihomo 已成为全局内核"
+
+msgid "Switch failed; sing-box Smart was restored where possible"
+msgstr "切换失败，已尽可能恢复 sing-box Smart"
+
+msgid "Smart core"
+msgstr "Smart 内核"
+
+msgid "Invalid core path"
+msgstr "内核路径无效"
+
+msgid "Not installed"
+msgstr "未安装"
+
+msgid "Install pinned Smart core"
+msgstr "安装固定版本 Smart 内核"
+
+msgid "Pinned installer supports /usr/bin/sing-box-smart or /usr/local/bin/sing-box-smart only"
+msgstr "固定版本安装器仅支持 /usr/bin/sing-box-smart 或 /usr/local/bin/sing-box-smart"
+
+msgid "Core installed"
+msgstr "内核已安装"
+
+msgid "Installation failed; stop SmartBox and check system log"
+msgstr "安装失败，请停止 SmartBox 并检查系统日志"
+
+msgid "Rollback Smart core"
+msgstr "回滚 Smart 内核"
+
+msgid "Rollback supports /usr/bin/sing-box-smart or /usr/local/bin/sing-box-smart only"
+msgstr "回滚仅支持 /usr/bin/sing-box-smart 或 /usr/local/bin/sing-box-smart"
+
+msgid "Previous core restored"
+msgstr "已恢复之前的内核"
+
+msgid "Rollback failed; stop SmartBox and check system log"
+msgstr "回滚失败，请停止 SmartBox 并检查系统日志"
+
+msgid "Start SmartBox"
+msgstr "启动 SmartBox"
+
+msgid "Enable the independent service and save first"
+msgstr "请先启用独立服务并保存配置"
+
+msgid "Start requested; refresh status"
+msgstr "已请求启动，请刷新状态"
+
+msgid "Stop SmartBox"
+msgstr "停止 SmartBox"
+
+msgid "Runtime status"
+msgstr "运行状态"
+
+msgid "Import OpenClash rules"
+msgstr "导入 OpenClash 规则"
+
+msgid "Import failed; check /tmp/smartbox-import.log"
+msgstr "导入失败，请检查 /tmp/smartbox-import.log"
+
+msgid "Failed; check system log and configuration"
+msgstr "失败，请检查系统日志和配置"
+
+msgid "SmartBox - Smart 节点质量排名"
+msgstr "SmartBox - Smart 节点质量排名"
+
+msgid "Smart 操作失败"
+msgstr "Smart 操作失败"
+
+msgid "本地 API 健康检查"
+msgstr "本地 API 健康检查"
+
+msgid "暂无日志"
+msgstr "暂无日志"
+
+msgid "Smart 数据读取失败"
+msgstr "Smart 数据读取失败"
+
+msgid "未找到 Smart 组。请检查内核及订阅配置。"
+msgstr "未找到 Smart 组。请检查内核及订阅配置。"
+
+msgid "数据已更新。权重是相对排名，不是绝对速度。"
+msgstr "数据已更新。权重是相对排名，不是绝对速度。"
+
+msgid "当前选择"
+msgstr "当前选择"
+
+msgid "成员数"
+msgstr "成员数"
+
+msgid "手动固定"
+msgstr "手动固定"
+
+msgid "智能选择"
+msgstr "智能选择"
+
+msgid "立即重算"
+msgstr "立即重算"
+
+msgid "取消固定"
+msgstr "取消固定"
+
+msgid "尚无节点数据"
+msgstr "尚无节点数据"
+
+msgid "节点"
+msgstr "节点"
+
+msgid "权重/质量"
+msgstr "权重/质量"
+
+msgid "状态"
+msgstr "状态"
+
+msgid "探测/响应"
+msgstr "探测/响应"
+
+msgid "下载"
+msgstr "下载"
+
+msgid "成功/失败"
+msgstr "成功/失败"
+
+msgid "稳定性"
+msgstr "稳定性"
+
+msgid "操作"
+msgstr "操作"
+
+msgid "离线"
+msgstr "离线"
+
+msgid "退避中"
+msgstr "退避中"
+
+msgid "候选池"
+msgstr "候选池"
+
+msgid "可用"
+msgstr "可用"
+
+msgid "固定"
+msgstr "固定"
+
+msgid "近期日志"
+msgstr "近期日志"
+
+msgid "刷新排名"
+msgstr "刷新排名"
+
+msgid "正在读取 Smart 排名..."
+msgstr "正在读取 Smart 排名..."
+
+msgid "正在读取..."
+msgstr "正在读取..."
+
+msgid "SmartBox (Experimental)"
+msgstr "SmartBox（实验性）"
+
+msgid "Smart Ranking"
+msgstr "Smart 节点排名"
