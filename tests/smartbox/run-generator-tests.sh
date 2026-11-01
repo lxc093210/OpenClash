@@ -27,8 +27,12 @@ if data['inbounds'][0].get('type') == 'tun':
     assert tun['interface_name']=='smarttun', tun
     assert tun['auto_route'] is True and tun['auto_redirect'] is True, tun
     assert tun['dns_mode']=='hijack', tun
+    assert 'sniff' not in tun and 'sniff_override_destination' not in tun, tun
     assert data['route']['auto_detect_interface'] is True, data['route']
-    assert data['route']['rules'][0]['action']=='hijack-dns', data['route']
+    rules=data['route']['rules']
+    assert rules[0]=={'inbound':'tun-in','action':'resolve','strategy':'prefer_ipv4'}, rules
+    assert rules[1]=={'inbound':'tun-in','action':'sniff'}, rules
+    assert rules[2]=={'inbound':'tun-in','protocol':'dns','action':'hijack-dns'}, rules
     assert data['dns']['servers'][0]['type']=='https', data['dns']
 else:
     assert data['inbounds'][0]['listen']=='127.0.0.1', data['inbounds'][0]

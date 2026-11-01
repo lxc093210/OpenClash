@@ -101,10 +101,13 @@ local obj = {
 if mode == "global" then
   inbounds = {{type="tun", tag="tun-in", interface_name=tun_interface,
     address={tun_address}, auto_route=true, auto_redirect=true,
-    strict_route=true, dns_mode="hijack", sniff=true,
-    sniff_override_destination=true}}
+    strict_route=true, dns_mode="hijack"}}
   route.auto_detect_interface = true
-  route.rules = {{action="hijack-dns"}}
+  route.rules = {
+    {inbound="tun-in", action="resolve", strategy="prefer_ipv4"},
+    {inbound="tun-in", action="sniff"},
+    {inbound="tun-in", protocol="dns", action="hijack-dns"}
+  }
   obj.dns = {
     servers={{type="https", tag="smart-doh", server="1.1.1.1",
       server_port=443, path="/dns-query", detour="direct"}},
