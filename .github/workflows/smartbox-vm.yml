@@ -203,7 +203,12 @@ jobs:
             cat /tmp/smartbox-direct-global.log
             exit 1
           fi
-          /usr/libexec/smartbox-generate
+          if ! /usr/libexec/smartbox-generate >/tmp/smartbox-global-generate.log 2>&1; then
+            generate_error="$(tail -n 16 /tmp/smartbox-global-generate.log | tr '\n' ' ')"
+            echo "::error title=SmartBox global config generation failed::$generate_error"
+            cat /tmp/smartbox-global-generate.log
+            exit 1
+          fi
           /usr/libexec/smartbox-start
           pidof sing-box-smart
           test -f /etc/sing-box-smart/handover.active
