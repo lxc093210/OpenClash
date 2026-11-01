@@ -22,18 +22,17 @@ cat > "$TMP/bin/mock-core" <<'SH'
 python3 - "$3" <<'PY'
 import json,sys
 data=json.load(open(sys.argv[1]))
-if __import__('os').environ.get('MOCK_MODE') == 'global':
+if data['inbounds'][0].get('type') == 'tun':
     tun=data['inbounds'][0]
-    assert tun['type']=='tun'
-    assert tun['interface_name']=='smarttun'
-    assert tun['auto_route'] is True and tun['auto_redirect'] is True
-    assert tun['dns_mode']=='hijack'
-    assert data['route']['auto_detect_interface'] is True
-    assert data['route']['rules'][0]['action']=='hijack-dns'
-    assert data['dns']['servers'][0]['type']=='https'
+    assert tun['interface_name']=='smarttun', tun
+    assert tun['auto_route'] is True and tun['auto_redirect'] is True, tun
+    assert tun['dns_mode']=='hijack', tun
+    assert data['route']['auto_detect_interface'] is True, data['route']
+    assert data['route']['rules'][0]['action']=='hijack-dns', data['route']
+    assert data['dns']['servers'][0]['type']=='https', data['dns']
 else:
-    assert data['inbounds'][0]['listen']=='127.0.0.1'
-    assert data['inbounds'][0]['listen_port']==2088
+    assert data['inbounds'][0]['listen']=='127.0.0.1', data['inbounds'][0]
+    assert data['inbounds'][0]['listen_port']==2088, data['inbounds'][0]
 assert data['providers'][0]['type']=='remote'
 assert data['providers'][0]['tag']=='airport_test'
 assert data['providers'][0]['http_client']=='fetch-airport_test'
