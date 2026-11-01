@@ -177,6 +177,7 @@ jobs:
           /usr/libexec/smartbox-core-install
           /usr/libexec/smartbox-secret-init
           mkdir -p /etc/openclash/config
+          original_config_path="$(uci -q get openclash.config.config_path || true)"
           printf '%s\n' \
             'rules:' \
             '  - DOMAIN-SUFFIX,example.com,DIRECT' \
@@ -197,6 +198,12 @@ jobs:
           uci show smartbox | grep -F "match_type='domain'"
           uci show smartbox | grep -F "ip_cidr='203.0.113.0/24'"
           uci show smartbox | grep -F "source_ip_cidr='192.0.2.10/32'"
+          if [ -n "$original_config_path" ]; then
+            uci set openclash.config.config_path="$original_config_path"
+          else
+            uci -q delete openclash.config.config_path
+          fi
+          uci commit openclash
           if ! uci set smartbox.smoke=provider 2>/tmp/uci-set.err; then
             echo "::error title=SmartBox provider section write failed::$(tr '\n' ' ' </tmp/uci-set.err)"; exit 1
           fi
