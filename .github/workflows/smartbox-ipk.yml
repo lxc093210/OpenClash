@@ -15,7 +15,8 @@ on:
       - '.github/workflows/smartbox-vm.yml'
 
 permissions:
-  contents: read
+  # Required only for the one-time experimental APK release handoff below.
+  contents: write
 
 concurrency:
   group: smartbox-ipk-${{ github.ref }}
