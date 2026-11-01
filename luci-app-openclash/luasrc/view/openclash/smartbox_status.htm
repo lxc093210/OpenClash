@@ -87,7 +87,7 @@
     clear(target);
     runtime.textContent = data && data.runtime || '';
     if (data && data.health) {
-      runtime.textContent += (runtime.textContent ? '\\n' : '') + '<%:本地 API 健康检查%>: ' + data.health;
+      runtime.textContent += (runtime.textContent ? '\n' : '') + '<%:本地 API 健康检查%>: ' + data.health;
     }
     logs.textContent = data && Array.isArray(data.logs) && data.logs.length ?
       data.logs.join('\n') : '<%:暂无日志%>';

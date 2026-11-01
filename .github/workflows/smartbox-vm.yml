@@ -192,6 +192,22 @@ jobs:
           curl -fsS --max-time 5 -H "Authorization: Bearer $secret" \
             http://127.0.0.1:19090/smart/groups | grep -F 'groups'
           /etc/init.d/smartbox stop
+          uci set smartbox.main.binary=/usr/bin/sing-box-smart.missing
+          uci commit smartbox
+          if /usr/libexec/smartbox-start >/tmp/smartbox-start-failure.log 2>&1; then
+            echo "::error title=SmartBox invalid-core rollback missing::start unexpectedly succeeded"
+            cat /tmp/smartbox-start-failure.log
+            exit 1
+          fi
+          if pidof sing-box-smart >/dev/null 2>&1; then
+            echo "::error title=SmartBox invalid-core rollback left process::sing-box-smart is still running"
+            exit 1
+          fi
+          uci set smartbox.main.binary=/usr/bin/sing-box-smart
+          uci commit smartbox
+          /usr/libexec/smartbox-start
+          pidof sing-box-smart
+          /etc/init.d/smartbox stop
           uci show openclash > /tmp/openclash.after
           uci show dhcp > /tmp/dhcp.after
           uci show firewall > /tmp/firewall.after
