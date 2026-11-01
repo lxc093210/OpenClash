@@ -194,6 +194,34 @@ jobs:
           curl -fsS --max-time 5 -H "Authorization: Bearer $secret" \
             http://127.0.0.1:19090/smart/groups | grep -F 'groups'
           /etc/init.d/smartbox stop
+          uci set smartbox.main.mode=global
+          uci set openclash.config.enable=0
+          uci commit smartbox
+          if /etc/init.d/smartbox start >/tmp/smartbox-direct-global.log 2>&1; then
+            echo "::error title=SmartBox global init guard missing::direct init unexpectedly succeeded"
+            cat /tmp/smartbox-direct-global.log
+            exit 1
+          fi
+          /usr/libexec/smartbox-generate
+          /usr/libexec/smartbox-start
+          pidof sing-box-smart
+          test -f /etc/sing-box-smart/handover.active
+          kill "$(pidof sing-box-smart | awk '{print $1}')"
+          recovered=0
+          for attempt in $(seq 1 20); do
+            if [ ! -f /etc/sing-box-smart/handover.active ] && ! pidof sing-box-smart >/dev/null 2>&1; then
+              recovered=1
+              break
+            fi
+            sleep 1
+          done
+          [ "$recovered" -eq 1 ] || {
+            echo "::error title=SmartBox watchdog recovery missing::$(ls -l /etc/sing-box-smart/handover.active 2>&1 || true)"
+            exit 1
+          }
+          uci set smartbox.main.mode=sidecar
+          uci commit smartbox
+          /usr/libexec/smartbox-generate
           uci set smartbox.main.binary=/usr/bin/sing-box-smart.missing
           uci commit smartbox
           if /usr/libexec/smartbox-start >/tmp/smartbox-start-failure.log 2>&1; then
