@@ -197,8 +197,9 @@ jobs:
           uci set smartbox.main.mode=global
           uci set openclash.config.enable=0
           uci commit smartbox
-          if /etc/init.d/smartbox start >/tmp/smartbox-direct-global.log 2>&1; then
-            echo "::error title=SmartBox global init guard missing::direct init unexpectedly succeeded"
+          /etc/init.d/smartbox start >/tmp/smartbox-direct-global.log 2>&1 || true
+          if pidof sing-box-smart >/dev/null 2>&1 || [ -f /etc/sing-box-smart/handover.active ]; then
+            echo "::error title=SmartBox global init guard missing::direct init started SmartBox"
             cat /tmp/smartbox-direct-global.log
             exit 1
           fi
