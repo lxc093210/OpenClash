@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stop SmartBox and restore Mihomo when Smart global takeover was active.
+set -eu
+/etc/init.d/smartbox stop >/dev/null 2>&1 || true

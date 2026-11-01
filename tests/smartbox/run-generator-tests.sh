@@ -22,8 +22,18 @@ cat > "$TMP/bin/mock-core" <<'SH'
 python3 - "$3" <<'PY'
 import json,sys
 data=json.load(open(sys.argv[1]))
-assert data['inbounds'][0]['listen']=='127.0.0.1'
-assert data['inbounds'][0]['listen_port']==2088
+if __import__('os').environ.get('MOCK_MODE') == 'global':
+    tun=data['inbounds'][0]
+    assert tun['type']=='tun'
+    assert tun['interface_name']=='smarttun'
+    assert tun['auto_route'] is True and tun['auto_redirect'] is True
+    assert tun['dns_mode']=='hijack'
+    assert data['route']['auto_detect_interface'] is True
+    assert data['route']['rules'][0]['action']=='hijack-dns'
+    assert data['dns']['servers'][0]['type']=='https'
+else:
+    assert data['inbounds'][0]['listen']=='127.0.0.1'
+    assert data['inbounds'][0]['listen_port']==2088
 assert data['providers'][0]['type']=='remote'
 assert data['providers'][0]['tag']=='airport_test'
 assert data['providers'][0]['http_client']=='fetch-airport_test'
@@ -46,30 +56,32 @@ chmod +x "$TMP/bin/"*
 export MOCK_CORE_BIN="$TMP/bin/mock-core"
 export PATH="$TMP/bin:$PATH"
 export LUA_PATH="$ROOT/tests/smartbox/mocks/?.lua;$ROOT/tests/smartbox/mocks/?/init.lua;;"
-echo '[1/5] valid provider produces validated JSON'
+echo '[1/8] valid provider produces validated JSON'
 "$TMP/generate" >/dev/null
 test -s "$TMP/state/config.json"
-echo '[2/5] insecure HTTP subscriptions rejected'
+echo '[2/8] global mode produces official TUN and DNS fields'
+MOCK_MODE=global "$TMP/generate" >/dev/null
+echo '[3/8] insecure HTTP subscriptions rejected'
 if MOCK_PROVIDER_URL='http://example.test/unsafe' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: HTTP URL was accepted"; exit 1
 fi
-echo '[3/5] short API secret rejected'
+echo '[4/8] short API secret rejected'
 if MOCK_SECRET='abc' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: short API secret was accepted"; exit 1
 fi
-echo '[4/5] duplicate providers rejected'
+echo '[5/8] duplicate providers rejected'
 if MOCK_DUPLICATE=1 "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: duplicate provider was accepted"; exit 1
 fi
-echo '[5/7] invalid update interval rejected'
+echo '[6/8] invalid update interval rejected'
 if MOCK_INTERVAL='1m' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid interval was accepted"; exit 1
 fi
-echo '[6/7] invalid Smart probe status rejected'
+echo '[7/8] invalid Smart probe status rejected'
 if MOCK_EXPECTED_STATUS='not-a-status' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid probe status was accepted"; exit 1
 fi
-echo '[7/7] invalid Smart sample rate rejected'
+echo '[8/8] invalid Smart sample rate rejected'
 if MOCK_SAMPLE_RATE='0' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid sample rate was accepted"; exit 1
 fi

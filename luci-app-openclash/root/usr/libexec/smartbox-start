@@ -7,6 +7,30 @@ umask 077
   echo "Enable SmartBox and save the configuration first" >&2
   exit 1
 }
+mode="$(uci -q get smartbox.main.mode || echo sidecar)"
+case "$mode" in
+  sidecar) ;;
+  global)
+    mkdir -p /etc/sing-box-smart
+    chmod 0700 /etc/sing-box-smart
+    if [ -f /etc/sing-box-smart/handover.active ] && pidof sing-box-smart >/dev/null 2>&1; then
+      /usr/libexec/smartbox-health >/dev/null 2>&1 && exit 0
+      rm -f /etc/sing-box-smart/handover.active
+    fi
+    if pidof clash >/dev/null 2>&1; then
+      printf '%s\n' running > /etc/sing-box-smart/handover.active
+      chmod 0600 /etc/sing-box-smart/handover.active
+      /etc/init.d/openclash stop >/dev/null 2>&1 || {
+        rm -f /etc/sing-box-smart/handover.active
+        echo "OpenClash could not be stopped for SmartBox takeover" >&2
+        exit 1
+      }
+    else
+      rm -f /etc/sing-box-smart/handover.active
+    fi
+    ;;
+  *) echo "Invalid SmartBox traffic mode" >&2; exit 1 ;;
+esac
 /etc/init.d/smartbox start
 
 last_error="Smart API did not become healthy"

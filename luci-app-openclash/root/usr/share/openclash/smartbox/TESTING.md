@@ -2,8 +2,9 @@
 
 Use an isolated OpenWrt 24.10.x or matching ImmortalWrt x86_64 test VM. This
 branch has only been packaged with the OpenWrt 24.10.3 x86_64 SDK. Router-wide
-DNS, firewall, TUN and policy handover are not implemented. Do not install this
-experimental package on a production router.
+Global TUN handover is experimental and policy conversion is not complete. Do
+not enable global mode on a production router; start with localhost sidecar
+mode in an isolated VM.
 
 ## Before installation
 
@@ -87,6 +88,9 @@ trailing certificate metadata block after the gzip stream.
 5. From the test VM only, send traffic through `127.0.0.1:2088` and verify the
    response. Keep OpenClash's existing service and LAN routing unchanged.
 6. Stop SmartBox. Compare DNS, firewall and routes with the pretest state.
+7. Only after the sidecar checks pass, select **Global TUN proxy** and use the
+   Start control. Verify that OpenClash stops before the `smarttun` interface
+   appears, and that stopping SmartBox restores OpenClash.
 
 Do not publish `/etc/config/smartbox`, generated JSON, subscription URLs, API
 secrets or unredacted core logs.
@@ -97,8 +101,9 @@ For a failed Smart core update, stop SmartBox in LuCI and click **Rollback
 Smart core**. For a failed package upgrade, run `/etc/init.d/smartbox stop` and
 reinstall the previous OpenClash IPK with `opkg install --force-reinstall`.
 Restore the backed-up OpenClash config and directory if needed, then restart
-OpenClash. The experimental Smart service does not alter DNS, firewall or
-routes, so stopping it should restore the pretest network state immediately.
+OpenClash. Sidecar mode does not alter DNS, firewall or routes. Global mode
+relies on sing-box `auto_redirect` and restores OpenClash on an unsuccessful
+startup or when stopped through LuCI.
 
 ## Remaining limits
 
@@ -107,8 +112,9 @@ routes, so stopping it should restore the pretest network state immediately.
 - UCI changes do not automatically restart procd. Use the LuCI Stop and Start
   buttons after changing SmartBox settings. Start waits for the localhost API
   health check and stops the sidecar automatically if it fails.
-- No automatic Mihomo/Smart switch, global interception, Fake-IP or device
-  policy handover exists yet.
+- Global TUN interception is experimental; OpenClash YAML domain rules,
+  device-level policies and Mihomo Fake-IP state are not converted into Smart
+  rules yet. Use sidecar mode when those existing policies are required.
 - The Smart core installer currently targets x86_64 and aarch64 releases only.
 - VM failures in the pinned Smart core installation step include the final
   installer lines in a sanitized CI annotation, covering download, checksum,

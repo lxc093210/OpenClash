@@ -2,6 +2,8 @@
 # Read-only service status, no credentials printed.
 set -eu
 echo "SmartBox status"
+mode="$(uci -q get smartbox.main.mode || echo sidecar)"
+echo "Mode: $mode"
 binary="$(uci -q get smartbox.main.binary || echo /usr/bin/sing-box-smart)"
 case "$binary" in
  /*) ;;
@@ -22,5 +24,13 @@ if [ -f /etc/sing-box-smart/config.json ]; then
  echo "Config: present"
 else
  echo "Config: absent"
+fi
+if [ "$mode" = "global" ]; then
+ interface="$(uci -q get smartbox.main.tun_interface || echo smarttun)"
+ if ip link show "$interface" >/dev/null 2>&1; then
+  echo "TUN: $interface up"
+ else
+  echo "TUN: $interface absent"
+ fi
 fi
 echo "OpenClash enabled: $(uci -q get openclash.config.enable || echo unknown)"

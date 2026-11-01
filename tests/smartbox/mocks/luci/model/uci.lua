@@ -6,6 +6,9 @@ function M.cursor()
       assert(pkg == "smartbox" and section == "main")
       return {
         api_secret = os.getenv("MOCK_SECRET") or string.rep("a", 40),
+        mode = os.getenv("MOCK_MODE") or "sidecar",
+        tun_interface = "smarttun",
+        tun_address = "172.19.0.1/30",
         listen_port = os.getenv("MOCK_PROXY_PORT") or "2088",
         controller_port = "19090",
         probe_url = "https://www.gstatic.com/generate_204",

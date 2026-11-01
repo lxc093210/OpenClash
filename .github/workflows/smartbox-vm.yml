@@ -151,6 +151,7 @@ jobs:
           opkg status luci-app-openclash | grep -E '^Status: install .* installed$'
           test -x /etc/init.d/smartbox
           test -x /usr/libexec/smartbox-generate
+          test -x /usr/libexec/smartbox-stop
           test -f /usr/lib/lua/luci/controller/smartbox.lua
           test -f /usr/share/licenses/luci-app-openclash/LICENSE
           grep -F '"smartbox"' /usr/share/rpcd/acl.d/luci-app-openclash.json

@@ -3799,6 +3799,10 @@ get_config()
 
 start_service()
 {
+   if [ "$(uci -q get smartbox.main.mode)" = "global" ] && [ -f /etc/sing-box-smart/handover.active ]; then
+      LOG_WARN "SmartBox global TUN is active; stop SmartBox before starting OpenClash"
+      exit 1
+   fi
    enable=$(uci_get_config "enable")
    [ "$enable" != "1" ] && LOG_WARN "OpenClash Now Disabled, Need Start From Luci Page, Exit..." && exit 0
 

@@ -1,5 +1,5 @@
 local m = Map("smartbox", translate("sing-box Smart (experimental)"),
- translate("Independent localhost-only test runner. Does not change OpenClash DNS, firewall, or TUN. May run alongside OpenClash in this localhost-only mode. It does not transparently proxy LAN clients; provider URLs are confidential. Save changes before starting the service."))
+ translate("Sidecar mode is localhost-only and can run alongside Mihomo. Global TUN mode is experimental: it stops OpenClash before takeover and restores it when stopped or when startup fails. Test global mode in an isolated router first. Provider URLs are confidential. Save changes before starting the service."))
 
 function m.on_after_commit(self)
   os.execute("chmod 0600 /etc/config/smartbox")
@@ -9,6 +9,11 @@ local s = m:section(NamedSection, "main", "smartbox", translate("Runtime"))
 s.addremove = false
 local enabled = s:option(Flag, "enabled", translate("Enable independent service"))
 enabled.default = "0"
+local mode = s:option(ListValue, "mode", translate("Traffic mode"))
+mode:value("sidecar", translate("Localhost sidecar (safe default)"))
+mode:value("global", translate("Global TUN proxy (experimental)"))
+mode.default = "sidecar"
+mode.description = translate("Global mode stops OpenClash before takeover and restores it when SmartBox stops or startup fails. Test in an isolated router first.")
 local binary = s:option(Value, "binary", translate("Smart binary path"))
 binary.default = "/usr/bin/sing-box-smart"
 function binary.validate(self, value)
@@ -18,6 +23,20 @@ end
 local port = s:option(Value, "listen_port", translate("Local mixed proxy port"))
 port.datatype = "port"
 port.default = "2088"
+local tun_interface = s:option(Value, "tun_interface", translate("Smart TUN interface"))
+tun_interface.default = "smarttun"
+tun_interface:depends("mode", "global")
+function tun_interface.validate(self, value)
+ if value and #value <= 15 and value:match("^[A-Za-z0-9_.-]+$") then return value end
+ return nil, translate("Use a Linux interface name up to 15 characters")
+end
+local tun_address = s:option(Value, "tun_address", translate("Smart TUN address"))
+tun_address.default = "172.19.0.1/30"
+tun_address:depends("mode", "global")
+function tun_address.validate(self, value)
+ if value and value:match("^[0-9%.]+/[0-9]+$") then return value end
+ return nil, translate("Use an IPv4 CIDR address, for example 172.19.0.1/30")
+end
 local controller = s:option(Value, "controller_port", translate("Local controller port"))
 controller.datatype = "port"
 controller.default = "19090"
@@ -176,6 +195,6 @@ end
 local stop = controls:option(Button, "_stop", translate("Stop local test"))
 stop.inputstyle = "reset"
 function stop.write(self, section)
-  os.execute("/etc/init.d/smartbox stop >/dev/null 2>&1")
+  os.execute("/usr/libexec/smartbox-stop >/dev/null 2>&1")
 end
 return m

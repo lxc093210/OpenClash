@@ -281,6 +281,7 @@ jobs:
             usr/libexec/smartbox-core-install \
             usr/libexec/smartbox-health \
             usr/libexec/smartbox-start \
+            usr/libexec/smartbox-stop \
             usr/lib/lua/luci/controller/smartbox.lua \
             usr/lib/lua/luci/view/openclash/smartbox_status.htm \
             usr/share/rpcd/acl.d/luci-app-openclash.json \
@@ -295,11 +296,12 @@ jobs:
           tar -tvf "$DATA" | awk '
             $NF == "./etc/init.d/smartbox" || $NF == "./usr/libexec/smartbox-generate" ||
             $NF == "./usr/libexec/smartbox-core-install" || $NF == "./usr/libexec/smartbox-core-rollback" ||
-            $NF == "./usr/libexec/smartbox-health" || $NF == "./usr/libexec/smartbox-start" {
+            $NF == "./usr/libexec/smartbox-health" || $NF == "./usr/libexec/smartbox-start" ||
+            $NF == "./usr/libexec/smartbox-stop" {
               if ($1 != "-rwxr-xr-x") exit 1
               count++
             }
-            END { if (count != 6) exit 1 }
+            END { if (count != 7) exit 1 }
           '
           echo 'SmartBox package files verified'
 

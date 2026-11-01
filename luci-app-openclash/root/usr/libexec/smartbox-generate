@@ -38,6 +38,9 @@ assert(cfg.api_secret and #cfg.api_secret >= 24 and
 local listen_port = port(cfg.listen_port, 2088)
 local controller_port = port(cfg.controller_port, 19090)
 assert(listen_port ~= controller_port, "proxy and controller ports must differ")
+local mode = bounded_text(cfg.mode, "sidecar", 16, "^(sidecar|global)$")
+local tun_interface = bounded_text(cfg.tun_interface, "smarttun", 15, "^[A-Za-z0-9_.-]+$")
+local tun_address = bounded_text(cfg.tun_address, "172.19.0.1/30", 64, "^[0-9%.]+/[0-9]+$")
 local probe_url = bounded_text(cfg.probe_url, "https://www.gstatic.com/generate_204", 512, "^https://[^%c%s]+$")
 local expected_status = bounded_text(cfg.expected_status, "204", 32, "^[%d*/%-]+$")
 local exclude_pattern = bounded_text(cfg.exclude_pattern, "", 512)
@@ -73,10 +76,12 @@ uci:foreach("smartbox", "provider", function(p)
   end
 end)
 assert(#providers > 0 and #providers <= 50, "enable 1-50 providers")
+local inbounds
+local route = {final="auto", default_http_client="fetch"}
 local obj = {
   log={level="info"},
   http_clients=clients,
-  inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}},
+  inbounds=nil,
   providers=providers,
   outbounds={{
     type="smart", tag="auto", providers=tags,
@@ -86,12 +91,28 @@ local obj = {
     use_lightgbm=flag(cfg.use_lightgbm, "1"),
     collect_data=flag(cfg.collect_data, "1"), sample_rate=sample_rate
   },{type="direct", tag="direct"}},
-  route={final="auto", default_http_client="fetch"},
+  route=route,
   experimental={
     cache_file={enabled=true, path="/etc/sing-box-smart/cache.db"},
     clash_api={external_controller="127.0.0.1:" .. controller_port,secret=cfg.api_secret}
   }
 }
+if mode == "global" then
+  inbounds = {{type="tun", tag="tun-in", interface_name=tun_interface,
+    address={tun_address}, auto_route=true, auto_redirect=true,
+    strict_route=true, dns_mode="hijack", sniff=true,
+    sniff_override_destination=true}}
+  route.auto_detect_interface = true
+  route.rules = {{action="hijack-dns"}}
+  obj.dns = {
+    servers={{type="https", tag="smart-doh", server="1.1.1.1",
+      server_port=443, path="/dns-query", detour="direct"}},
+    final="smart-doh", strategy="prefer_ipv4"
+  }
+else
+  inbounds = {{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}}
+end
+obj.inbounds = inbounds
 if exclude_pattern ~= "" then obj.outbounds[1].exclude = exclude_pattern end
 if policy_priority ~= "" then obj.outbounds[1].policy_priority = policy_priority end
 local fp = assert(io.open(assert(os.getenv("CANDIDATE")), "w"))

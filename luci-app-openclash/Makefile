@@ -70,6 +70,7 @@ define Build/Prepare
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-secret-init
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-health
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-start
+	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-stop
 	chmod 0600 $(PKG_BUILD_DIR)/root/etc/config/smartbox
 	chmod -R 0755 $(PKG_BUILD_DIR)/root/usr/share/openclash/
 	exit 0
