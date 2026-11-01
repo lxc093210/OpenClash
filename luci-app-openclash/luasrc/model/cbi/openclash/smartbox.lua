@@ -21,6 +21,47 @@ port.default = "2088"
 local controller = s:option(Value, "controller_port", translate("Local controller port"))
 controller.datatype = "port"
 controller.default = "19090"
+local probe = s:option(Value, "probe_url", translate("Smart probe URL"))
+probe.default = "https://www.gstatic.com/generate_204"
+function probe.validate(self, value)
+ if value and value:match("^https://[^%c%s]+$") then return value end
+ return nil, translate("Use an HTTPS probe URL")
+end
+local expected = s:option(Value, "expected_status", translate("Expected probe status"))
+expected.default = "204"
+function expected.validate(self, value)
+ if value and #value <= 32 and value:match("^[%d*/%-]+$") then return value end
+ return nil, translate("Use a status code, range, or slash-separated status codes")
+end
+local asn = s:option(Flag, "prefer_asn", translate("Prefer ASN grouping"))
+asn.default = "0"
+asn.description = translate("Reuse quality data for destinations on the same network")
+local tolerance = s:option(Value, "tolerance", translate("Delay tolerance (ms)"))
+tolerance.datatype = "uinteger"
+tolerance.default = "0"
+local sample = s:option(Value, "sample_rate", translate("Learning sample rate"))
+sample.default = "0.25"
+function sample.validate(self, value)
+ local n = tonumber(value)
+ if n and n >= 0.01 and n <= 1 then return value end
+ return nil, translate("Use a value between 0.01 and 1")
+end
+local collect = s:option(Flag, "collect_data", translate("Collect Smart training data"))
+collect.default = "1"
+local lightgbm = s:option(Flag, "use_lightgbm", translate("Use LightGBM quality model"))
+lightgbm.default = "1"
+local exclude = s:option(Value, "exclude_pattern", translate("Exclude node pattern"))
+exclude.default = "(?i)剩余|到期|官网|traffic|expire"
+function exclude.validate(self, value)
+ if value and #value <= 512 and not value:find("[%c]") then return value end
+ return nil, translate("Use at most 512 characters without control characters")
+end
+local policy = s:option(Value, "policy_priority", translate("Node priority rules"))
+policy.default = ""
+function policy.validate(self, value)
+ if value and #value <= 512 and not value:find("[%c]") then return value end
+ return nil, translate("Use at most 512 characters without control characters")
+end
 local secret = s:option(Value, "api_secret", translate("API secret"))
 secret.password = true
 secret.rmempty = true

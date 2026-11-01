@@ -7,7 +7,16 @@ function M.cursor()
       return {
         api_secret = os.getenv("MOCK_SECRET") or string.rep("a", 40),
         listen_port = os.getenv("MOCK_PROXY_PORT") or "2088",
-        controller_port = "19090"
+        controller_port = "19090",
+        probe_url = "https://www.gstatic.com/generate_204",
+        expected_status = os.getenv("MOCK_EXPECTED_STATUS") or "204",
+        prefer_asn = "0",
+        tolerance = "0",
+        sample_rate = os.getenv("MOCK_SAMPLE_RATE") or "0.25",
+        collect_data = "1",
+        use_lightgbm = "1",
+        exclude_pattern = "(?i)剩余|到期|官网",
+        policy_priority = ""
       }
     end,
     foreach = function(_, pkg, typ, callback)

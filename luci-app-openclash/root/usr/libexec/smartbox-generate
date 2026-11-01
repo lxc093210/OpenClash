@@ -16,13 +16,35 @@ local function port(value, fallback)
   assert(n and n == math.floor(n) and n >= 1 and n <= 65535, "invalid port")
   return n
 end
+local function bounded_text(value, fallback, max, pattern)
+  value = value or fallback
+  assert(#value <= max and not value:find("[%c]"), "invalid Smart setting")
+  if pattern then assert(value:match(pattern), "invalid Smart setting") end
+  return value
+end
+local function flag(value, fallback)
+  value = value or fallback
+  assert(value == "0" or value == "1", "invalid Smart flag")
+  return value == "1"
+end
+local function number(value, fallback, min, max)
+  local n = tonumber(value or fallback)
+  assert(n and n >= min and n <= max, "invalid Smart number")
+  return n
+end
 assert(cfg.api_secret and #cfg.api_secret >= 24 and
   cfg.api_secret:match("^[%w_-]+$"),
   "API secret must contain at least 24 letters/numbers")
 local listen_port = port(cfg.listen_port, 2088)
 local controller_port = port(cfg.controller_port, 19090)
 assert(listen_port ~= controller_port, "proxy and controller ports must differ")
-local providers, tags, seen = {}, {}, {}
+local probe_url = bounded_text(cfg.probe_url, "https://www.gstatic.com/generate_204", 512, "^https://[^%c%s]+$")
+local expected_status = bounded_text(cfg.expected_status, "204", 32, "^[%d*/%-]+$")
+local exclude_pattern = bounded_text(cfg.exclude_pattern, "", 512)
+local policy_priority = bounded_text(cfg.policy_priority, "", 512)
+local tolerance = number(cfg.tolerance, 0, 0, 65535)
+local sample_rate = number(cfg.sample_rate, 0.25, 0.01, 1)
+local providers, tags, seen, clients = {}, {}, {}, {{tag="fetch", detour="direct"}}
 uci:foreach("smartbox", "provider", function(p)
   if p.enabled == "1" then
     local tag, url = p.name or "", p.url or ""
@@ -36,8 +58,16 @@ uci:foreach("smartbox", "provider", function(p)
     assert(count and (unit == "h" or tonumber(count) >= 60),
       "provider update interval must be at least 1 hour")
     seen[tag] = true
-    local provider = {type="remote", tag=tag, url=url, update_interval=interval, http_client="fetch"}
-    if user_agent ~= "" then provider.user_agent = user_agent end
+    local client_tag = "fetch"
+    if user_agent ~= "" then
+      client_tag = "fetch-" .. tag
+      clients[#clients+1] = {
+        tag=client_tag, detour="direct",
+        headers={ ["User-Agent"] = user_agent }
+      }
+    end
+    local provider = {type="remote", tag=tag, url=url,
+      update_interval=interval, http_client=client_tag}
     providers[#providers+1] = provider
     tags[#tags+1] = tag
   end
@@ -45,14 +75,16 @@ end)
 assert(#providers > 0 and #providers <= 50, "enable 1-50 providers")
 local obj = {
   log={level="info"},
-  http_clients={{tag="fetch", detour="direct"}},
+  http_clients=clients,
   inbounds={{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}},
   providers=providers,
   outbounds={{
     type="smart", tag="auto", providers=tags,
-    url="https://www.gstatic.com/generate_204", interval="5m",
-    timeout="10s", expected_status="204", use_lightgbm=true,
-    collect_data=true, sample_rate=0.25
+    url=probe_url, interval="5m",
+    timeout="10s", expected_status=expected_status,
+    prefer_asn=flag(cfg.prefer_asn, "0"), tolerance=tolerance,
+    use_lightgbm=flag(cfg.use_lightgbm, "1"),
+    collect_data=flag(cfg.collect_data, "1"), sample_rate=sample_rate
   },{type="direct", tag="direct"}},
   route={final="auto", default_http_client="fetch"},
   experimental={
@@ -60,6 +92,8 @@ local obj = {
     clash_api={external_controller="127.0.0.1:" .. controller_port,secret=cfg.api_secret}
   }
 }
+if exclude_pattern ~= "" then obj.outbounds[1].exclude = exclude_pattern end
+if policy_priority ~= "" then obj.outbounds[1].policy_priority = policy_priority end
 local fp = assert(io.open(assert(os.getenv("CANDIDATE")), "w"))
 assert(fp:write(assert(json.stringify(obj))))
 assert(fp:close())

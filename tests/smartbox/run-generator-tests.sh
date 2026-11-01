@@ -26,12 +26,18 @@ assert data['inbounds'][0]['listen']=='127.0.0.1'
 assert data['inbounds'][0]['listen_port']==2088
 assert data['providers'][0]['type']=='remote'
 assert data['providers'][0]['tag']=='airport_test'
-assert data['providers'][0]['user_agent']=='clash'
+assert data['providers'][0]['http_client']=='fetch-airport_test'
+assert 'user_agent' not in data['providers'][0]
+assert data['http_clients'][1]['headers']['User-Agent']=='clash'
 assert data['outbounds'][0]['type']=='smart'
 assert data['outbounds'][0]['providers']==['airport_test']
 assert data['outbounds'][0]['use_lightgbm'] is True
 assert data['outbounds'][0]['collect_data'] is True
 assert data['outbounds'][0]['sample_rate']==0.25
+assert data['outbounds'][0]['expected_status']=='204'
+assert data['outbounds'][0]['prefer_asn'] is False
+assert data['outbounds'][0]['tolerance']==0
+assert data['outbounds'][0]['exclude']=='(?i)剩余|到期|官网'
 assert data['experimental']['clash_api']['external_controller']=='127.0.0.1:19090'
 assert len(data['experimental']['clash_api']['secret']) >= 24
 PY
@@ -55,9 +61,17 @@ echo '[4/5] duplicate providers rejected'
 if MOCK_DUPLICATE=1 "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: duplicate provider was accepted"; exit 1
 fi
-echo '[5/5] invalid update interval rejected'
+echo '[5/7] invalid update interval rejected'
 if MOCK_INTERVAL='1m' "$TMP/generate" >/dev/null 2>&1; then
   echo "ERROR: invalid interval was accepted"; exit 1
+fi
+echo '[6/7] invalid Smart probe status rejected'
+if MOCK_EXPECTED_STATUS='not-a-status' "$TMP/generate" >/dev/null 2>&1; then
+  echo "ERROR: invalid probe status was accepted"; exit 1
+fi
+echo '[7/7] invalid Smart sample rate rejected'
+if MOCK_SAMPLE_RATE='0' "$TMP/generate" >/dev/null 2>&1; then
+  echo "ERROR: invalid sample rate was accepted"; exit 1
 fi
 test ! -e "$TMP/state/config.candidate.json"
 echo 'SmartBox generator smoke tests passed'
