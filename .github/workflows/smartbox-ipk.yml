@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1 lua-cjson
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1 lua-cjson meson ninja-build pkg-config libssl-dev liblua5.1-0-dev
           wget -q --https-only --retry-connrefused --tries=3 "$SDK_URL" -O /tmp/sdk.tar.zst
           printf '%s  %s\n' "$SDK_SHA256" /tmp/sdk.tar.zst | sha256sum -c -
           mkdir -p /tmp/sdk
