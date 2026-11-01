@@ -177,18 +177,22 @@ jobs:
           /usr/libexec/smartbox-core-install
           /usr/libexec/smartbox-secret-init
           mkdir -p /etc/openclash/config
-          cat >/etc/openclash/config/smartbox-import.yaml <<'YAML'
-          rules:
-            - DOMAIN-SUFFIX,example.com,DIRECT
-            - DOMAIN,exact.example,PROXY
-            - DOMAIN-KEYWORD,internal,DIRECT
-            - IP-CIDR,203.0.113.0/24,REJECT
-            - SRC-IP-CIDR,192.0.2.10/32,DIRECT
-            - PROCESS-NAME,example,PROXY
-          YAML
+          printf '%s\n' \
+            'rules:' \
+            '  - DOMAIN-SUFFIX,example.com,DIRECT' \
+            '  - DOMAIN,exact.example,PROXY' \
+            '  - DOMAIN-KEYWORD,internal,DIRECT' \
+            '  - IP-CIDR,203.0.113.0/24,REJECT' \
+            '  - SRC-IP-CIDR,192.0.2.10/32,DIRECT' \
+            '  - PROCESS-NAME,example,PROXY' \
+            >/etc/openclash/config/smartbox-import.yaml
           uci set openclash.config.config_path=/etc/openclash/config/smartbox-import.yaml
           uci commit openclash
-          /usr/libexec/smartbox-import-openclash-rules
+          if ! /usr/libexec/smartbox-import-openclash-rules >/tmp/smartbox-import.log 2>&1; then
+            echo "::error title=OpenClash rule import failed::$(tr '\n' ' ' </tmp/smartbox-import.log)"
+            cat /tmp/smartbox-import.log
+            exit 1
+          fi
           uci show smartbox | grep -F "source='openclash'"
           uci show smartbox | grep -F "match_type='domain'"
           uci show smartbox | grep -F "ip_cidr='203.0.113.0/24'"
