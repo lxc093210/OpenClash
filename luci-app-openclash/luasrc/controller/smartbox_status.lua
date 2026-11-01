@@ -227,6 +227,7 @@ function status_data()
   data = redact(data)
   os.remove(header_path)
   data.runtime = state.runtime
+  data.health = state.health
   data.logs = state.logs
   http.write_json(data)
 end
