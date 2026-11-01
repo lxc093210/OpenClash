@@ -41,6 +41,27 @@ local auto_redirect = s:option(Flag, "tun_auto_redirect", translate("TUN auto re
 auto_redirect.default = "0"
 auto_redirect:depends("mode", "global")
 auto_redirect.description = translate("Requires kernel nfqueue support; startup rolls back if the router cannot enable it")
+local fakeip = s:option(Flag, "fakeip_enabled", translate("Smart Fake-IP"))
+fakeip.default = "0"
+fakeip:depends("mode", "global")
+fakeip.description = translate("Return sing-box Fake-IP addresses for A/AAAA queries; use the reserved ranges below")
+local fakeip4 = s:option(Value, "fakeip_ipv4_range", translate("Fake-IP IPv4 range"))
+fakeip4.default = "198.18.0.0/15"
+fakeip4:depends({mode="global", fakeip_enabled="1"})
+function fakeip4.validate(self, value)
+ local a,b,c,d,prefix = value and value:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+ if a and tonumber(a) <= 255 and tonumber(b) <= 255 and tonumber(c) <= 255 and
+   tonumber(d) <= 255 and tonumber(prefix) <= 32 then return value end
+ return nil, translate("Use a valid IPv4 CIDR, for example 198.18.0.0/15")
+end
+local fakeip6 = s:option(Value, "fakeip_ipv6_range", translate("Fake-IP IPv6 range"))
+fakeip6.default = "2001:2::/48"
+fakeip6:depends({mode="global", fakeip_enabled="1"})
+function fakeip6.validate(self, value)
+ local prefix = value and value:match("^[0-9A-Fa-f:]+/(%d+)$")
+ if prefix and tonumber(prefix) <= 128 then return value end
+ return nil, translate("Use a valid IPv6 CIDR, for example 2001:2::/48")
+end
 local controller = s:option(Value, "controller_port", translate("Local controller port"))
 controller.datatype = "port"
 controller.default = "19090"

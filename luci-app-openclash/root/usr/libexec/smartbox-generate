@@ -42,6 +42,18 @@ local mode = bounded_text(cfg.mode, "sidecar", 16)
 assert(mode == "sidecar" or mode == "global", "invalid Smart traffic mode")
 local tun_interface = bounded_text(cfg.tun_interface, "smarttun", 15, "^[A-Za-z0-9_.-]+$")
 local tun_address = bounded_text(cfg.tun_address, "172.19.0.1/30", 64, "^[0-9%.]+/[0-9]+$")
+local fakeip_enabled = flag(cfg.fakeip_enabled, "0")
+local fakeip_ipv4_range = bounded_text(cfg.fakeip_ipv4_range, "198.18.0.0/15", 32, "^[0-9%.]+/[0-9]+$")
+local fakeip_ipv6_range = bounded_text(cfg.fakeip_ipv6_range, "2001:2::/48", 64, "^[0-9A-Fa-f:]+/[0-9]+$")
+if fakeip_enabled then
+  local a,b,c,d,prefix = fakeip_ipv4_range:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+  assert(a and tonumber(a) <= 255 and tonumber(b) <= 255 and
+    tonumber(c) <= 255 and tonumber(d) <= 255 and tonumber(prefix) <= 32,
+    "invalid Smart Fake-IP IPv4 range")
+  local v6_prefix = fakeip_ipv6_range:match("/(%d+)$")
+  assert(v6_prefix and tonumber(v6_prefix) <= 128,
+    "invalid Smart Fake-IP IPv6 range")
+end
 local probe_url = bounded_text(cfg.probe_url, "https://www.gstatic.com/generate_204", 512, "^https://[^%c%s]+$")
 local expected_status = bounded_text(cfg.expected_status, "204", 32, "^[%d*/%-]+$")
 local exclude_pattern = bounded_text(cfg.exclude_pattern, "", 512)
@@ -151,6 +163,13 @@ if mode == "global" then
       server_port=443, path="/dns-query"}},
     final="smart-doh", strategy="prefer_ipv4"
   }
+  if fakeip_enabled then
+    obj.dns.servers[#obj.dns.servers + 1] = {
+      type="fakeip", tag="smart-fakeip", inet4_range=fakeip_ipv4_range,
+      inet6_range=fakeip_ipv6_range
+    }
+    obj.dns.rules = {{query_type={"A", "AAAA"}, server="smart-fakeip"}}
+  end
 else
   inbounds = {{type="mixed", tag="local-test", listen="127.0.0.1",listen_port=listen_port}}
 end

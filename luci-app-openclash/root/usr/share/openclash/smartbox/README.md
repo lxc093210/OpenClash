@@ -15,6 +15,8 @@ production router. It accepts explicit SmartBox device IPv4 CIDR and
 domain-suffix policies from LuCI. Existing OpenClash YAML rules and its
 device-policy database are not imported automatically; those policies remain
 available on the Mihomo side and are not silently discarded.
+Smart Fake-IP is also available for global mode. It uses sing-box's current
+Fake-IP DNS server for A and AAAA queries and is disabled by default.
 
 The ranking page reports both the process state and a localhost API health check.
 The start control waits for that health check and stops the sidecar if it does not
