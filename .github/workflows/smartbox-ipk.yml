@@ -322,3 +322,114 @@ jobs:
     permissions:
       contents: read
       actions: read
+
+  # ImmortalWrt 25.12 and OpenWrt 25.12 use APK v3 instead of the IPK
+  # format used by the 24.10 SDK above. Keep a release-pinned APK build so
+  # users on the newer package manager can upgrade an existing OpenClash
+  # installation without mixing package formats.
+  build-immortalwrt-25-12-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare OpenWrt 25.12.2 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential gawk unzip file wget python3 rsync zstd lua5.1 lua-cjson
+          sdk_url='https://downloads.openwrt.org/releases/25.12.2/targets/x86/64/openwrt-sdk-25.12.2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst'
+          sdk_sha256='4abb32a6dd05f80c24fc1a487a94b1f5f0a5d4cd560ff3dd8c1bf77793a2d5dc'
+          wget -q --https-only --retry-connrefused --tries=3 "$sdk_url" -O /tmp/sdk-25.12.tar.zst
+          printf '%s  %s\n' "$sdk_sha256" /tmp/sdk-25.12.tar.zst | sha256sum -c -
+          mkdir -p /tmp/sdk-25.12
+          tar --zstd -xf /tmp/sdk-25.12.tar.zst -C /tmp/sdk-25.12 --strip-components=1
+
+      - name: Import package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sdk-25.12/package/smartbox
+          cp -a luci-app-openclash/. /tmp/sdk-25.12/package/smartbox/
+
+      - name: Update SDK release feeds
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk-25.12
+          # The release SDK carries the matching 25.12 feed branches. Keep
+          # those URLs rather than resolving moving master feeds.
+          cp feeds.conf.default feeds.conf
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Seed and resolve APK SDK configuration
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk-25.12
+          printf 'CONFIG_PACKAGE_luci-app-openclash=m\n' >> .config
+          printf 'CONFIG_PACKAGE_rust=n\n' >> .config
+          printf 'CONFIG_RUBY_ENABLE_YJIT=n\n' >> .config
+          make defconfig
+          if grep -q '^CONFIG_RUBY_ENABLE_YJIT=y$' .config; then
+            echo 'Ruby YJIT unexpectedly enabled' >&2
+            exit 1
+          fi
+          if grep -Eq '^CONFIG_PACKAGE_rust=[ym]$' .config; then
+            echo 'Rust target package unexpectedly selected' >&2
+            exit 1
+          fi
+
+      - name: Build OpenClash translation compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -C /tmp/sdk-25.12/package/smartbox/tools/po2lmo
+          sudo install -m 0755 /tmp/sdk-25.12/package/smartbox/tools/po2lmo/src/po2lmo /usr/local/bin/po2lmo
+          command -v po2lmo
+
+      - name: Check SmartBox source
+        shell: bash
+        run: |
+          set -euo pipefail
+          luac5.1 -p luci-app-openclash/luasrc/controller/smartbox.lua
+          luac5.1 -p luci-app-openclash/luasrc/controller/smartbox_status.lua
+          luac5.1 -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          for script in luci-app-openclash/root/usr/libexec/smartbox-*; do sh -n "$script"; done
+
+      - name: Compile APK package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/sdk-25.12
+          make -C package/smartbox TOPDIR=/tmp/sdk-25.12 compile V=s -j1
+
+      - name: Inspect APK payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find /tmp/sdk-25.12/bin/packages -type f -name 'luci-app-openclash*.apk' -print -quit)"
+          [ -n "$apk_path" ]
+          file "$apk_path"
+          tar -tf "$apk_path" > /tmp/smartbox-apk-manifest.txt
+          for file in \
+            .PKGINFO \
+            etc/config/smartbox \
+            etc/init.d/smartbox \
+            usr/libexec/smartbox-switch \
+            usr/libexec/smartbox-watchdog \
+            usr/lib/lua/luci/controller/smartbox.lua \
+            usr/share/licenses/luci-app-openclash/LICENSE; do
+            grep -Eq "(^|/)${file}$" /tmp/smartbox-apk-manifest.txt || {
+              echo "Missing expected APK file: $file" >&2
+              exit 1
+            }
+          done
+          echo 'ImmortalWrt/OpenWrt 25.12 APK payload verified'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smartbox-immortalwrt-25-12-x86-64-apk-experimental
+          path: /tmp/sdk-25.12/bin/packages/**/*openclash*.apk
+          if-no-files-found: error

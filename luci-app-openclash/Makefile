@@ -2,6 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-openclash
 PKG_VERSION:=0.48.002
+PKG_RELEASE:=2
 PKG_MAINTAINER:=vernesong <https://github.com/vernesong/OpenClash>
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
@@ -73,6 +74,7 @@ define Build/Prepare
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-stop
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-watchdog
 	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-import-openclash-rules
+	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/smartbox-switch
 	chmod 0600 $(PKG_BUILD_DIR)/root/etc/config/smartbox
 	chmod -R 0755 $(PKG_BUILD_DIR)/root/usr/share/openclash/
 	exit 0
