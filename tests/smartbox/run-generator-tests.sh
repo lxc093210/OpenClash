@@ -34,6 +34,7 @@ if data['inbounds'][0].get('type') == 'tun':
     assert rules[1]=={'inbound':'tun-in','action':'sniff'}, rules
     assert rules[2]=={'inbound':'tun-in','protocol':'dns','action':'hijack-dns'}, rules
     assert data['dns']['servers'][0]['type']=='https', data['dns']
+    assert 'detour' not in data['dns']['servers'][0], data['dns']
 else:
     assert data['inbounds'][0]['listen']=='127.0.0.1', data['inbounds'][0]
     assert data['inbounds'][0]['listen_port']==2088, data['inbounds'][0]

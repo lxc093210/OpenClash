@@ -110,7 +110,7 @@ if mode == "global" then
   }
   obj.dns = {
     servers={{type="https", tag="smart-doh", server="1.1.1.1",
-      server_port=443, path="/dns-query", detour="direct"}},
+      server_port=443, path="/dns-query"}},
     final="smart-doh", strategy="prefer_ipv4"
   }
 else
