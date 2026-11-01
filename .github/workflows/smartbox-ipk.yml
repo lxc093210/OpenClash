@@ -412,7 +412,21 @@ jobs:
           apk_path="$(find /tmp/sdk-25.12/bin/packages -type f -name 'luci-app-openclash*.apk' -print -quit)"
           [ -n "$apk_path" ]
           file "$apk_path"
-          tar -tf "$apk_path" > /tmp/smartbox-apk-manifest.txt
+          # APK v3 is an outer signed tar archive. Its data payload is a
+          # second tar archive, unlike the legacy ar-wrapped IPK format.
+          tar -tf "$apk_path" > /tmp/smartbox-apk-outer-manifest.txt
+          data_entry="$(grep -E '(^|/)data\.tar\.(gz|zst|xz)$' /tmp/smartbox-apk-outer-manifest.txt | head -n 1)"
+          [ -n "$data_entry" ] || {
+            echo 'APK data archive is missing' >&2
+            cat /tmp/smartbox-apk-outer-manifest.txt >&2
+            exit 1
+          }
+          case "$data_entry" in
+            *.gz) tar -xOf "$apk_path" "$data_entry" | tar -tzf - > /tmp/smartbox-apk-manifest.txt ;;
+            *.zst) tar -xOf "$apk_path" "$data_entry" | zstd -dc | tar -tf - > /tmp/smartbox-apk-manifest.txt ;;
+            *.xz) tar -xOf "$apk_path" "$data_entry" | tar -tJf - > /tmp/smartbox-apk-manifest.txt ;;
+            *) echo "Unsupported APK data compression: $data_entry" >&2; exit 1 ;;
+          esac
           for file in \
             .PKGINFO \
             etc/config/smartbox \
