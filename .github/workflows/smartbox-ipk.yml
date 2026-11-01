@@ -15,8 +15,7 @@ on:
       - '.github/workflows/smartbox-vm.yml'
 
 permissions:
-  # Required only for the one-time experimental APK release handoff below.
-  contents: write
+  contents: read
 
 concurrency:
   group: smartbox-ipk-${{ github.ref }}
@@ -427,25 +426,3 @@ jobs:
           name: smartbox-immortalwrt-25-12-x86-64-apk-experimental
           path: /tmp/sdk-25.12/bin/packages/**/*openclash*.apk
           if-no-files-found: error
-
-      # Publish the first verified 25.12 test package so an APK-compatible
-      # target can install it without requiring an authenticated artifact URL.
-      # The commit guard keeps this one-time handoff from publishing every build.
-      - name: Publish verified APK test release
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, 'publish verified 25.12 APK')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk_path="$(find /tmp/sdk-25.12/bin/packages -type f -name 'luci-app-openclash*.apk' -print -quit)"
-          tag='smartbox-apk-25.12.2-x86-64'
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$tag" "$apk_path" --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$tag" "$apk_path" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title 'OpenClash SmartBox 25.12 APK experimental' \
-              --prerelease \
-              --notes 'Experimental APK for ImmortalWrt/OpenWrt 25.12 x86_64. Keep SmartBox disabled until local validation is complete.'
-          fi
