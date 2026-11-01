@@ -45,7 +45,7 @@ define Package/$(PKG_NAME)
 	TITLE:=LuCI support for clash (SmartBox development fork)
 	PKGARCH:=all
 	DEPENDS:=+luci-compat +dnsmasq-full +bash +curl +ca-bundle +ip-full \
-	+ruby +ruby-yaml +kmod-tun +unzip
+	+ruby +ruby-yaml +ruby-ipaddr +kmod-tun +unzip
 	MAINTAINER:=vernesong
 endef
 

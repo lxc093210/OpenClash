@@ -249,7 +249,7 @@ jobs:
           CONTROL="$(find . -maxdepth 1 -name 'control.tar.*' -print -quit)"
           [ -n "$CONTROL" ]
           depends="$(tar -xOf "$CONTROL" ./control | sed -n 's/^Depends: //p')"
-          for dep in luci-compat dnsmasq-full bash curl ca-bundle ip-full ruby ruby-yaml kmod-tun unzip; do
+          for dep in luci-compat dnsmasq-full bash curl ca-bundle ip-full ruby ruby-yaml ruby-ipaddr kmod-tun unzip; do
             printf '%s\n' "$depends" | grep -Eq "(^|[ ,])${dep}([ ,(]|$)" || {
               echo "Missing runtime dependency: $dep" >&2
               exit 1
