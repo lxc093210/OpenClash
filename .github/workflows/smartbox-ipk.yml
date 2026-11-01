@@ -398,6 +398,18 @@ jobs:
           luac5.1 -p luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
           for script in luci-app-openclash/root/usr/libexec/smartbox-*; do sh -n "$script"; done
 
+      - name: Build host APK inspection tool
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/sdk-25.12
+          # Some release SDK archives omit the host apk binary even though
+          # CONFIG_USE_APK is enabled. Build the matching tool explicitly so
+          # payload validation uses the same APK v3 implementation as the SDK.
+          make package/system/apk/host/compile V=s -j1
+          apk_tool="$(find staging_dir/host* \( -type f -o -type l \) -name apk -print -quit)"
+          test -x "$apk_tool"
+
       - name: Compile APK package
         shell: bash
         run: |
