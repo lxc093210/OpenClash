@@ -412,21 +412,20 @@ jobs:
           apk_path="$(find /tmp/sdk-25.12/bin/packages -type f -name 'luci-app-openclash*.apk' -print -quit)"
           [ -n "$apk_path" ]
           file "$apk_path"
-          # APK v3 is an outer signed tar archive. Its data payload is a
-          # second tar archive, unlike the legacy ar-wrapped IPK format.
-          tar -tf "$apk_path" > /tmp/smartbox-apk-outer-manifest.txt
-          data_entry="$(grep -E '(^|/)data\.tar\.(gz|zst|xz)$' /tmp/smartbox-apk-outer-manifest.txt | head -n 1)"
-          [ -n "$data_entry" ] || {
-            echo 'APK data archive is missing' >&2
-            cat /tmp/smartbox-apk-outer-manifest.txt >&2
+          # APK v3 is an ADB binary container, not a tar archive. The SDK
+          # builds and stages the matching host apk tool; use it to perform
+          # the same extraction path that apk on ImmortalWrt uses.
+          apk_tool="$(find /tmp/sdk-25.12/staging_dir/host* \( -type f -o -type l \) -name apk 2>/dev/null | head -n 1)"
+          [ -x "$apk_tool" ] || {
+            echo 'SDK host apk tool is missing' >&2
+            find /tmp/sdk-25.12/staging_dir -path '*/bin/apk' -print >&2 || true
             exit 1
           }
-          case "$data_entry" in
-            *.gz) tar -xOf "$apk_path" "$data_entry" | tar -tzf - > /tmp/smartbox-apk-manifest.txt ;;
-            *.zst) tar -xOf "$apk_path" "$data_entry" | zstd -dc | tar -tf - > /tmp/smartbox-apk-manifest.txt ;;
-            *.xz) tar -xOf "$apk_path" "$data_entry" | tar -tJf - > /tmp/smartbox-apk-manifest.txt ;;
-            *) echo "Unsupported APK data compression: $data_entry" >&2; exit 1 ;;
-          esac
+          rm -rf /tmp/smartbox-apk-extract
+          mkdir -p /tmp/smartbox-apk-extract
+          (cd /tmp/smartbox-apk-extract && "$apk_tool" extract --allow-untrusted "$apk_path")
+          find /tmp/smartbox-apk-extract -type f -o -type l |
+            sed 's|^/tmp/smartbox-apk-extract/||' > /tmp/smartbox-apk-manifest.txt
           for file in \
             .PKGINFO \
             etc/config/smartbox \
