@@ -15,7 +15,7 @@ on:
       - '.github/workflows/smartbox-vm.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: smartbox-ipk-${{ github.ref }}
@@ -426,14 +426,3 @@ jobs:
           name: smartbox-immortalwrt-25-12-x86-64-apk-experimental
           path: /tmp/sdk-25.12/bin/packages/**/*openclash*.apk
           if-no-files-found: error
-
-      - name: Publish verified Chinese APK test release
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, 'publish verified Chinese APK')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk_path="$(find /tmp/sdk-25.12/bin/packages -type f -name 'luci-app-openclash*.apk' -print -quit)"
-          tag='smartbox-apk-25.12.2-x86-64'
-          gh release upload "$tag" "$apk_path" --repo "$GITHUB_REPOSITORY" --clobber
