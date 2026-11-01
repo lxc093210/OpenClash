@@ -13,6 +13,9 @@ function M.cursor()
         fakeip_enabled = os.getenv("MOCK_FAKEIP") or "0",
         fakeip_ipv4_range = os.getenv("MOCK_FAKEIP_IPV4") or "198.18.0.0/15",
         fakeip_ipv6_range = os.getenv("MOCK_FAKEIP_IPV6") or "2001:2::/48",
+        fakeip_enabled = os.getenv("MOCK_FAKEIP") or "0",
+        fakeip_ipv4_range = os.getenv("MOCK_FAKEIP_IPV4") or "198.18.0.0/15",
+        fakeip_ipv6_range = os.getenv("MOCK_FAKEIP_IPV6") or "2001:2::/48",
         listen_port = os.getenv("MOCK_PROXY_PORT") or "2088",
         controller_port = "19090",
         probe_url = "https://www.gstatic.com/generate_204",
@@ -42,8 +45,10 @@ function M.cursor()
         callback({enabled="1", source_ip_cidr=cidr, target=target})
       elseif typ == "domain_policy" and os.getenv("MOCK_DOMAIN_POLICY") == "1" then
         local suffix = os.getenv("MOCK_BAD_POLICY") == "1" and "bad..example" or "example.com"
-        callback({enabled="1", domain_suffix=suffix, target="reject"})
-      elseif typ ~= "device_policy" and typ ~= "domain_policy" then
+        callback({enabled="1", domain_suffix=suffix, match_type="domain_suffix", target="reject"})
+      elseif typ == "ip_policy" and os.getenv("MOCK_IP_POLICY") == "1" then
+        callback({enabled="1", ip_cidr="203.0.113.0/24", target="direct"})
+      elseif typ ~= "device_policy" and typ ~= "domain_policy" and typ ~= "ip_policy" then
         error("unexpected SmartBox section type: " .. tostring(typ))
       end
     end

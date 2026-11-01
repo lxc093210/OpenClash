@@ -67,6 +67,9 @@ if os.environ.get('MOCK_DEVICE_POLICY') == '1':
 if os.environ.get('MOCK_DOMAIN_POLICY') == '1':
     assert {'inbound':'tun-in','domain_suffix':'example.com',
             'action':'reject'} in data['route']['rules'], data['route']['rules']
+if os.environ.get('MOCK_IP_POLICY') == '1':
+    assert {'inbound':'tun-in','ip_cidr':'203.0.113.0/24',
+            'action':'route','outbound':'direct'} in data['route']['rules'], data['route']['rules']
 PY
 SH
 chmod +x "$TMP/bin/"*
@@ -80,7 +83,7 @@ echo '[2/11] global mode produces official TUN and DNS fields'
 MOCK_MODE=global "$TMP/generate" >/dev/null
 MOCK_MODE=global MOCK_AUTO_REDIRECT=1 "$TMP/generate" >/dev/null
 echo '[3/11] global device and domain policies produce route actions'
-MOCK_MODE=global MOCK_DEVICE_POLICY=1 MOCK_DOMAIN_POLICY=1 "$TMP/generate" >/dev/null
+MOCK_MODE=global MOCK_DEVICE_POLICY=1 MOCK_DOMAIN_POLICY=1 MOCK_IP_POLICY=1 "$TMP/generate" >/dev/null
 echo '[4/11] global Fake-IP produces current DNS server and rule fields'
 MOCK_MODE=global MOCK_FAKEIP=1 "$TMP/generate" >/dev/null
 echo '[5/11] invalid Smart policies rejected'

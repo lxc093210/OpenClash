@@ -26,6 +26,7 @@ jobs:
         run: |
           sh -n luci-app-openclash/root/etc/init.d/smartbox
           for f in luci-app-openclash/root/usr/libexec/smartbox-*; do sh -n "$f"; done
+          sh -n luci-app-openclash/root/usr/libexec/smartbox-import-openclash-rules
       - name: Lua syntax
         run: |
           luac -p luci-app-openclash/luasrc/controller/smartbox.lua
@@ -53,6 +54,8 @@ jobs:
           grep -q 'smart-fakeip' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'Smart device policies' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
           grep -q 'Smart domain policies' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          grep -q 'smartbox-import-openclash-rules' luci-app-openclash/luasrc/model/cbi/openclash/smartbox.lua
+          grep -q 'domain_keyword' luci-app-openclash/root/usr/libexec/smartbox-generate
           ! grep -q 'sniff_override_destination' luci-app-openclash/root/usr/libexec/smartbox-generate
           grep -q 'handover.active' luci-app-openclash/root/etc/init.d/smartbox
           grep -q 'requires smartbox-start handover' luci-app-openclash/root/etc/init.d/smartbox

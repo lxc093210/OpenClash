@@ -201,11 +201,36 @@ function suffix.validate(self, value)
    not value:find("%.%.") and not value:find("%.%-") and not value:find("%-%.") then return value end
  return nil, translate("Use an ASCII or punycode domain suffix such as example.com")
 end
+local match_type = domain:option(ListValue, "match_type", translate("Match type"))
+match_type:value("domain_suffix", translate("Domain suffix"))
+match_type:value("domain", translate("Exact domain"))
+match_type:value("domain_keyword", translate("Domain keyword"))
+match_type.default = "domain_suffix"
 local domain_target = domain:option(ListValue, "target", translate("Route"))
 domain_target:value("auto", translate("Smart selection"))
 domain_target:value("direct", translate("Direct"))
 domain_target:value("reject", translate("Reject"))
 domain_target.default = "auto"
+
+local ip = m:section(TypedSection, "ip_policy", translate("Smart IP policies"),
+ translate("Global TUN mode only. Imported IP-CIDR rules are kept separate from device policies."))
+ip.anonymous = true
+ip.addremove = true
+ip.sortable = true
+local ip_enabled = ip:option(Flag, "enabled", translate("Enabled"))
+ip_enabled.default = "0"
+local ip_cidr = ip:option(Value, "ip_cidr", translate("Destination IP CIDR"))
+ip_cidr.rmempty = false
+ip_cidr.placeholder = "203.0.113.0/24"
+function ip_cidr.validate(self, value)
+ if value and #value <= 64 and value:match("^[0-9A-Fa-f:.]+/%d+$") then return value:lower() end
+ return nil, translate("Use an IPv4 or IPv6 CIDR")
+end
+local ip_target = ip:option(ListValue, "target", translate("Route"))
+ip_target:value("auto", translate("Smart selection"))
+ip_target:value("direct", translate("Direct"))
+ip_target:value("reject", translate("Reject"))
+ip_target.default = "auto"
 
 local controls = m:section(SimpleSection)
 local core = controls:option(DummyValue, "_core", translate("Smart core"))
@@ -241,6 +266,13 @@ function rollback.write(self, section)
   local rc = os.execute("/usr/libexec/smartbox-core-rollback >/dev/null 2>&1")
   self.description = rc == 0 and translate("Previous core restored") or
     translate("Rollback failed; stop SmartBox and check system log")
+end
+local import_rules = controls:option(Button, "_import_rules", translate("Import OpenClash rules"))
+import_rules.inputstyle = "apply"
+function import_rules.write(self, section)
+  local rc = os.execute("/usr/libexec/smartbox-import-openclash-rules >/tmp/smartbox-import.log 2>&1")
+  local summary = require("luci.sys").exec("tail -n 1 /tmp/smartbox-import.log 2>/dev/null") or ""
+  self.description = rc == 0 and summary or translate("Import failed; check /tmp/smartbox-import.log")
 end
 local status = controls:option(DummyValue, "_runtime", translate("Runtime status"))
 function status.cfgvalue(self, section)

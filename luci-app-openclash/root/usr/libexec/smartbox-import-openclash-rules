@@ -1,0 +1,115 @@
+#!/bin/sh
+# Import a bounded, explicit subset of the active OpenClash YAML as SmartBox UCI rules.
+set -eu
+umask 077
+
+config_path="$(uci -q get openclash.config.config_path 2>/dev/null || true)"
+case "$config_path" in
+  /etc/openclash/config/*.yaml|/etc/openclash/config/*.yml) ;;
+  *) echo "OpenClash config path is unavailable or outside /etc/openclash/config" >&2; exit 1 ;;
+esac
+[ -f "$config_path" ] || { echo "OpenClash config file is unavailable" >&2; exit 1; }
+
+rules_file="$(mktemp /tmp/smartbox-import.XXXXXX)"
+trap 'rm -f "$rules_file"' EXIT HUP INT TERM
+
+# Ruby's safe_load prevents YAML object construction. The output is a small
+# tab-separated allow-list consumed by UCI below; source URLs never enter it.
+if ! ruby -ryaml -ripaddr -e '
+  path = ARGV.fetch(0)
+  document = YAML.safe_load(File.read(path), permitted_classes: [], aliases: false)
+  rules = document.is_a?(Hash) ? document["rules"] : nil
+  abort "OpenClash YAML has no rules list" unless rules.is_a?(Array)
+  seen = {}
+  imported = 0
+  skipped = 0
+  target_for = lambda do |raw|
+    case raw.to_s.strip.upcase
+    when "DIRECT" then "direct"
+    when "REJECT", "REJECT-DROP" then "reject"
+    else "auto"
+    end
+  end
+  domain_for = lambda do |raw|
+    value = raw.to_s.strip.downcase.sub(/\A\.+/, "")
+    raise unless value.length.between?(1, 253) && value.match?(/\A[a-z0-9][a-z0-9.-]*[a-z0-9]\z/) &&
+      !value.include?("..") && !value.include?(".-") && !value.include?("-.")
+    value
+  end
+  rules.each do |entry|
+    unless entry.is_a?(String)
+      skipped += 1
+      next
+    end
+    parts = entry.split(",", 3).map(&:strip)
+    type, value, target = parts
+    begin
+      kind = nil
+      match = nil
+      normalized = nil
+      case type.to_s.upcase
+      when "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD"
+        normalized = domain_for.call(value)
+        match = type.to_s.upcase == "DOMAIN" ? "domain" :
+          (type.to_s.upcase == "DOMAIN-KEYWORD" ? "domain_keyword" : "domain_suffix")
+        kind = "domain_policy"
+      when "IP-CIDR", "IP-CIDR6"
+        normalized = value.to_s.strip
+        IPAddr.new(normalized)
+        raise unless normalized.length <= 64 && normalized.match?(/\A[0-9A-Fa-f:.]+\/\d+\z/)
+        kind = "ip_policy"
+        match = "ip_cidr"
+      when "SRC-IP-CIDR"
+        normalized = value.to_s.strip
+        IPAddr.new(normalized)
+        raise unless normalized.length <= 64 && normalized.match?(/\A[0-9A-Fa-f:.]+\/\d+\z/)
+        kind = "device_policy"
+        match = "source_ip_cidr"
+      else
+        skipped += 1
+        next
+      end
+      target_name = target_for.call(target)
+      key = "#{kind}:#{match}:#{normalized}:#{target_name}"
+      if seen[key] || imported >= 100
+        skipped += 1
+        next
+      end
+      seen[key] = true
+      STDOUT.puts [kind, match, normalized, target_name].join("\t")
+      imported += 1
+    rescue StandardError
+      skipped += 1
+    end
+  end
+  abort "no supported OpenClash rules found" if imported.zero?
+  STDERR.puts "imported=#{imported} skipped=#{skipped}"
+' "$config_path" >"$rules_file" 2>/tmp/smartbox-import-ruby.err; then
+  cat /tmp/smartbox-import-ruby.err >&2 || true
+  exit 1
+fi
+
+for section in $(uci -q show smartbox | sed -n 's/^smartbox\.\([^.=]*\)=\(domain_policy\|ip_policy\|device_policy\)$/\1/p'); do
+  [ "$(uci -q get "smartbox.$section.source" 2>/dev/null || true)" = "openclash" ] && uci -q delete "smartbox.$section"
+done
+
+imported=0
+while IFS="	" read -r kind match value target; do
+  [ -n "$kind" ] || continue
+  section="$(uci add smartbox "$kind")"
+  uci set "smartbox.$section.enabled=1"
+  uci set "smartbox.$section.source=openclash"
+  uci set "smartbox.$section.target=$target"
+  case "$kind" in
+    domain_policy)
+      uci set "smartbox.$section.domain_suffix=$value"
+      uci set "smartbox.$section.match_type=$match" ;;
+    ip_policy)
+      uci set "smartbox.$section.ip_cidr=$value" ;;
+    device_policy)
+      uci set "smartbox.$section.source_ip_cidr=$value" ;;
+  esac
+  imported=$((imported + 1))
+done <"$rules_file"
+uci commit smartbox
+echo "Imported $imported supported OpenClash rules"

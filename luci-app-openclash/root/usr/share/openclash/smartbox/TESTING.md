@@ -119,7 +119,8 @@ startup, a failed post-start health check, or when stopped through LuCI.
   route is generated. Existing OpenClash YAML rules, the OpenClash device
   policy database and Mihomo Fake-IP state are not imported automatically;
   Smart Fake-IP can be enabled separately for global mode with reserved IPv4
-  and IPv6 ranges;
+  and IPv6 ranges. The LuCI importer can copy common OpenClash domain and IP
+  rules into marked SmartBox policies without modifying the source YAML;
   use sidecar mode when those existing policies are required.
 - The Smart core installer currently targets x86_64 and aarch64 releases only.
 - VM failures in the pinned Smart core installation step include the final

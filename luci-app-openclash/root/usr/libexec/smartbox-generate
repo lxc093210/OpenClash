@@ -151,11 +151,28 @@ if mode == "global" then
   uci:foreach("smartbox", "domain_policy", function(p)
     if p.enabled == "1" then
       local domain = (p.domain_suffix or ""):lower()
+      local match_type = p.match_type or "domain_suffix"
+      assert(match_type == "domain_suffix" or match_type == "domain" or
+        match_type == "domain_keyword", "invalid Smart domain match type")
       assert(#domain >= 1 and #domain <= 253 and
         domain:match("^[a-z0-9][a-z0-9.%-]*[a-z0-9]$") and
         not domain:find("%.%.") and not domain:find("%.%-") and
         not domain:find("%-%."), "invalid Smart domain suffix")
-      add_policy("domain_suffix", domain, p.target)
+      add_policy(match_type, domain, p.target)
+    end
+  end)
+  uci:foreach("smartbox", "ip_policy", function(p)
+    if p.enabled == "1" then
+      local cidr = (p.ip_cidr or ""):lower()
+      local a,b,c,d,prefix = cidr:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+      if a then
+        assert(tonumber(a) <= 255 and tonumber(b) <= 255 and tonumber(c) <= 255 and
+          tonumber(d) <= 255 and tonumber(prefix) <= 32, "invalid Smart IPv4 CIDR")
+      else
+        local v6_prefix = cidr:match("^[0-9a-f:]+/(%d+)$")
+        assert(v6_prefix and tonumber(v6_prefix) <= 128, "invalid Smart IPv6 CIDR")
+      end
+      add_policy("ip_cidr", cidr, p.target)
     end
   end)
   obj.dns = {
