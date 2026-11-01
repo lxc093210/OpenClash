@@ -90,7 +90,8 @@ trailing certificate metadata block after the gzip stream.
 6. Stop SmartBox. Compare DNS, firewall and routes with the pretest state.
 7. Only after the sidecar checks pass, select **Global TUN proxy** and use the
    Start control. Verify that OpenClash stops before the `smarttun` interface
-   appears, and that stopping SmartBox restores OpenClash.
+   appears, that stopping SmartBox restores OpenClash, and that terminating the
+   Smart process causes the watchdog to restore OpenClash automatically.
 
 Do not publish `/etc/config/smartbox`, generated JSON, subscription URLs, API
 secrets or unredacted core logs.
@@ -103,7 +104,7 @@ reinstall the previous OpenClash IPK with `opkg install --force-reinstall`.
 Restore the backed-up OpenClash config and directory if needed, then restart
 OpenClash. Sidecar mode does not alter DNS, firewall or routes. Global mode
 relies on sing-box `auto_redirect` and restores OpenClash on an unsuccessful
-startup or when stopped through LuCI.
+startup, a failed post-start health check, or when stopped through LuCI.
 
 ## Remaining limits
 

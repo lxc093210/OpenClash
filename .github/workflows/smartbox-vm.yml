@@ -152,6 +152,7 @@ jobs:
           test -x /etc/init.d/smartbox
           test -x /usr/libexec/smartbox-generate
           test -x /usr/libexec/smartbox-stop
+          test -x /usr/libexec/smartbox-watchdog
           test -f /usr/lib/lua/luci/controller/smartbox.lua
           test -f /usr/share/licenses/luci-app-openclash/LICENSE
           grep -F '"smartbox"' /usr/share/rpcd/acl.d/luci-app-openclash.json

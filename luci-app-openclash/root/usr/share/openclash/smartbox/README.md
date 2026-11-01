@@ -7,7 +7,8 @@ Smart binary is supplied separately; no untrusted binary is bundled here.
 
 The current implementation includes the LuCI route, HTTPS provider validation,
 secret protection, pinned core installation and rollback, runtime start/stop,
-post-start local health checking with automatic stop-on-failure, Smart API ranking,
+post-start local health checking with automatic stop-on-failure, watchdog recovery,
+Smart API ranking,
 package checks and isolated VM smoke-test workflow. Global mode is experimental
 and must be tested in an isolated router before use on a production router. It
 does not translate OpenClash's existing YAML rule and device-policy database

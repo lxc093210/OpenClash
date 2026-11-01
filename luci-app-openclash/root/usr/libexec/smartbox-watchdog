@@ -1,0 +1,17 @@
+#!/bin/sh
+# Recover Mihomo if a global SmartBox process becomes unhealthy after startup.
+set -eu
+umask 077
+
+while :; do
+  [ "$(uci -q get smartbox.main.mode || echo sidecar)" = "global" ] || exit 0
+  [ -f /etc/sing-box-smart/handover.active ] || exit 0
+  sleep 10
+  [ -f /etc/sing-box-smart/handover.active ] || exit 0
+  if /usr/libexec/smartbox-health >/dev/null 2>&1; then
+    continue
+  fi
+  logger -t smartbox "SmartBox global health check failed; restoring Mihomo"
+  /etc/init.d/smartbox stop >/dev/null 2>&1 || true
+  exit 1
+done
