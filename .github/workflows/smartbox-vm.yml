@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   smoke:
+    # Keep kernel handover coverage attached to the package that is being tested.
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
